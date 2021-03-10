@@ -23,5 +23,6 @@ setuptools.setup(
              'pyssianutils/pyssian-submit.py',
              'pyssianutils/pyssian-inputHT.py',
              'pyssianutils/pyssian-asinput.py',
-             'pyssianutils/pyssian-tddft-cubes.py'],
+             'pyssianutils/pyssian-tddft-cubes.py',
+             'pyssianutils/pyssian-track.py'],
 )

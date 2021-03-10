@@ -171,7 +171,23 @@ else:
             if item.Item == "RMS Displacement":
                 thresholds.append(item.Threshold)
                 break
-        f,((ax1,ax2),(ax3,ax4)) = pyplot.subplots(2,2,figsize=(HEIGHT/DPI,WIDTH/DPI))
+        #f,((ax1,ax2),(ax3,ax4)) = pyplot.subplots(2,2,figsize=(HEIGHT/DPI,WIDTH/DPI))
+        f = pyplot.figure(figsize=(HEIGHT/DPI,WIDTH/DPI))
+        ## Handpicked axes positioning
+        x_sep = 0.125
+        y_sep = 0.075
+        x_mar = y_mar = 0.1
+        w = 0.35
+        h = 0.375
+        bot = y_mar
+        left = x_mar
+        mbot = bot + h + y_sep
+        mleft = left + w + x_sep
+        ax1 = f.add_axes([left,  mbot, w, h])
+        ax2 = f.add_axes([mleft, mbot, w, h])
+        ax3 = f.add_axes([left,  bot,  w, h])
+        ax4 = f.add_axes([mleft, bot,  w, h])
+        ## End
         Labels = ["Force","RMSForce","Displacement","RMSDisplacement"]
         axes = [ax1,ax2,ax3,ax4]
         x = range(len(Force))
