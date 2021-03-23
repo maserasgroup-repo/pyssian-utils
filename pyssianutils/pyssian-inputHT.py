@@ -52,10 +52,14 @@ parser.add_argument('-T','--Tail',
                     default=None,
                     help="""Tail File that contains the extra options, such as 
                     pseudopotentials, basis sets """)
-parser.add_argument('-c','--charge',
+parser.add_argument('--charge',
                     default=0,
                     type=int,
                     help="""Net charge of the whole system""")
+parser.add_argument('--spin',
+                    default=1,
+                    type=int,
+                    help="""spin of the system""")
 parser.add_argument('--version',
                     version='script version {}'.format(__version__),
                     action='version')
