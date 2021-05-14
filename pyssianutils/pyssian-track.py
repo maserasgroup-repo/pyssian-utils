@@ -12,7 +12,7 @@ from pathlib import Path
 import argparse
 
 from pyssian import GaussianOutFile
-from pyssianutils.functions import Thermochemistry, PotentialEnergy, Write2file
+from pyssianutils.functions import Thermochemistry, PotentialEnergy, write_2_file
 
 __version__ = '0.0.0'
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     OutFile = args.OutFile
     if args.OutFile is not None:
         OutFile = os.path.abspath(args.OutFile)
-        WriteOutput = Write2file(OutFile)
+        WriteOutput = write_2_file(OutFile)
     else:
         WriteOutput = print
     # Header to know which is each column
@@ -87,7 +87,7 @@ if __name__ == "__main__":
         GOF.update()
     
     if args.scan: 
-        Link = GOF.GetLinks(103)[0]
+        Link = GOF.get_links(103)[0]
         for var in Link.parameters:
             if var.Derivative == 'Scan':
                 ScanVar = var
@@ -97,7 +97,7 @@ if __name__ == "__main__":
             raise ValueError("No 'Scan' variable found in the file")
         VarName = ScanVar.Name
     else:
-        Link = GOF.GetLinks(103)[0]
+        Link = GOF.get_links(103)[0]
         for var in Link.parameters:
             if var.Name == args.Var:
                 ScanVar = var

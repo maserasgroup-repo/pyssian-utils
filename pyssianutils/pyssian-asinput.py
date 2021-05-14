@@ -17,6 +17,9 @@ from pyssian.classutils import Geometry, DirectoryTree
 
 __version__ = '0.0.0'
 
+class NotFoundError(RuntimeError):
+    pass
+
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('Files',help='Gaussian Output Files',nargs='+')
 group_input = parser.add_mutually_exclusive_group()
@@ -78,7 +81,7 @@ parser.add_argument('--no-submit',default=False,action='store_true',
 parser.add_argument('--software',choices=['g09','g16'],help="""Version of
                     gaussian to which the calculations will be sent.
                     'qs {gxx}.queue.q file.in' (Default: g09)""",default='g09')
-parser.add_argument('--version',version='script version {}'.format(__version__),
+parser.add_argument('--version',version=f'script version {__version__}',
                     action='version')
 
 Queue = namedtuple('Queue','nprocesors memory'.split())
@@ -112,7 +115,7 @@ def submitline(File,software):
             nprocs = int(line.strip().split("=")[-1])
             break
     else:
-        raise NotFoundError('nproc not found in {}'.format(Filename))
+        raise NotFoundError(f'nproc not found in {File}')
     # Find Mem
     for line in Text:
         if '%mem' in line:
@@ -263,8 +266,8 @@ if __name__ == '__main__':
             GIF.read()
         with GaussianOutFile(IFile,[101,202]) as GOF:
             GOF.read()
-            l101 = GOF.GetLinks(101)[0]
-            l202 = GOF.GetLinks(202)[-1]
+            l101 = GOF.get_links(101)[0]
+            l202 = GOF.get_links(202)[-1]
             geom = Geometry.from_L202(l202)
 
         # Overwrite the corresponding values of attributes of the GIF

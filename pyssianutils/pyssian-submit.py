@@ -28,7 +28,7 @@ parser.add_argument('--ascomments',help="""If enabled found .in files with a
                 matching .out are included as comments""",action='store_true')
 parser.add_argument('--norun',help="""If enabled the submit command will instead
                 just generate the .in.sub file""",action='store_true')
-parser.add_argument('--version',version='script version {}'.format(__version__),
+parser.add_argument('--version',version=f'script version {__version__}',
                     action='version')
 
 
@@ -44,14 +44,14 @@ def InspectFile(Filename):
             QueueNum = int(line.strip().split("=")[-1])
             break
     else:
-        raise NotFoundError('nproc not found in {}'.format(Filename))
+        raise NotFoundError(f'nproc not found in {Filename}')
     # Find Mem
     for line in Text:
         if '%mem' in line:
             memory = int(line.strip().split("=")[-1][:-2])
             break
     else:
-        warnings.warn('mem not found in {}, ignoring "cq4m4 queue"'.format(Filename))
+        warnings.warn(f'mem not found in {Filename}, ignoring "cq4m4 queue"')
         return Filename, QUEUES[QueueNum]
     if QueueNum == 4 and memory < 4000:
         queue = QUEUES['q4']

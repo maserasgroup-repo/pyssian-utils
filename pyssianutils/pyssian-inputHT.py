@@ -61,7 +61,7 @@ parser.add_argument('--spin',
                     type=int,
                     help="""spin of the system""")
 parser.add_argument('--version',
-                    version='script version {}'.format(__version__),
+                    version=f'script version {__version__}',
                     action='version')
 
 Extension2Class = { 'in':'Input',
@@ -134,21 +134,20 @@ if __name__ == "__main__":
         elif FileClass == 'Output':
             with GaussianOutFile(InFilepath,[1,101,202]) as GOF:
                 GOF.update()
-            L101 = GOF.GetLinks(101)[0]
+            L101 = GOF.get_links(101)[0]
             spin = L101.spin
             charge = L101.charge
             if args.Step is None:
-                L202 = GOF.GetLinks(202)[-1]
+                L202 = GOF.get_links(202)[-1]
             else:
-                L202 = GOF[0].GetLinks(202)[args.Step-1]
+                L202 = GOF[0].get_links(202)[args.Step-1]
             Geom = Geometry.from_L202(L202)
         elif FileClass == 'xyz': 
             Geom = Geometry.from_xyz(IFile)
             spin = args.spin
             charge = args.charge
         else:
-            msg = 'File {} was ignored due to unrecognized extension {}'
-            print(msg.format(Name,extension))
+            print(f'File {Name} was ignored due to unrecognized extension {extension}')
         with open(OutFile,'w') as F:
             txt = FileStruct.format(Header=Header,Tail=Tail,spin=spin,
                                     Coords=str(Geom),Title=Name+marker,

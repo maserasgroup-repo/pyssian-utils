@@ -6,7 +6,7 @@ functutils
 General
 -------
 
-.. autofunction:: pyssian.functutils.Write2file
+.. autofunction:: pyssian.functutils.write_2_file
 
 Script
 ------

@@ -4,7 +4,7 @@ matplotlib.pyplot is available the Plot Functions become available
 """
 
 # General Utils
-def Write2file(File):
+def write_2_file(File):
     """
     Creates a wrapper for appending text to a certain File. Assumes that each
     call is quivalent to writing a single line.
@@ -16,7 +16,7 @@ def Write2file(File):
     return Writer
 
 # GaussianOutFile utils
-def Thermochemistry(GOF):
+def thermochemistry(GOF):
     """
     Returns the Zero Point Energy, Enthalpy and Free Energy
     from a frequency calculation.
@@ -30,12 +30,12 @@ def Thermochemistry(GOF):
     tuple
         (Z, H, G)
     """
-    Link = GOF[-1].GetLinks(716)[-1]
+    Link = GOF[-1].get_links(716)[-1]
     Z = Link.zeropoint[-1]
     H = Link.enthalpy[-1]
     G = Link.gibbs[-1]
     return Z, H, G
-def PotentialEnergy(GOF,Method='default'):
+def potential_energy(GOF,method='default'):
     """
     Returns the last potential energy of a GaussianOutFile of a certain
     method. The default is the energy of the SCF cycle ('SCF Done:')
@@ -51,26 +51,25 @@ def PotentialEnergy(GOF,Method='default'):
     float
         Energy
     """
-    if Method == 'mp2': # Search for MP2 energy
-        Energy = GOF.GetLinks(804)[-1].MP2
-    elif Method == 'mp2scs':
-        HF = GOF.GetLinks(502)[-1].energy
-        SCS_corr = GOF.GetLinks(804)[-1].Get_SCScorr()
-        Energy = HF + SCS_corr
-    elif Method == 'ccsdt': # Search for CCSD(T) energy or default to MP4
-        Aux = GOF.GetLinks(913)[-1]
-        Energy = Aux.CCSDT
-    elif Method == 'mp4':
-        Aux = GOF.GetLinks(913)[-1]
-        Energy = Aux.MP4
+    if method == 'mp2': # Search for MP2 energy
+        energy = GOF.get_links(804)[-1].MP2
+    elif method == 'mp2scs':
+        HF = GOF.get_links(502)[-1].energy
+        SCS_corr = GOF.get_links(804)[-1].Get_SCScorr()
+        energy = HF + SCS_corr
+    elif method == 'ccsdt': # Search for CCSD(T) energy or default to MP4
+        Aux = GOF.get_links(913)[-1]
+        energy = Aux.CCSDT
+    elif method == 'mp4':
+        Aux = GOF.get_links(913)[-1]
+        energy = Aux.MP4
     else: # Otherwise go to the "Done(...)" Energy
-        if 502 in GOF._Parsers:
-            Energy = GOF.GetLinks(502)[-1].energy
-        elif 508 in GOF._Parsers:
-            Energy = GOF.GetLinks(508)[-1].energy
-        else:
-            Energy = None
-    return Energy
+        energy = None
+        if 508 in GOF._Parsers: 
+            energy = GOF.get_links(508)[-1].energy
+        if 502 in GOF._Parsers and energy is None:
+            energy = GOF.get_links(502)[-1].energy
+    return energy
 
 # Console Utils
 def print_convergence(GOF,JobId,Last=False):
@@ -89,9 +88,9 @@ def print_convergence(GOF,JobId,Last=False):
         (the default is False).
     """
     if Last:
-        GOF[JobId].GetLinks(103)[-1].print_convergence()
+        GOF[JobId].get_links(103)[-1].print_convergence()
     else:
-        for i,L in enumerate(GOF[JobId].GetLinks(103)):
+        for i,L in enumerate(GOF[JobId].get_links(103)):
             print(i)
             L.print_convergence()
 def print_thermo(GOF):
@@ -103,12 +102,10 @@ def print_thermo(GOF):
     GOF : GaussianOutFile
         Gaussian File whose thermochemistry is going to be displayed.
     """
-    Z,H,G = Thermochemistry(GOF)
-    U = PotentialEnergy(GOF)
-    msg1 = '{: ^14}\t{: ^14}\t{: ^14}\t{: ^14}'
-    msg2 = '{: 03.9f}\t{: 03.9f}\t{: 03.9f}\t{: 03.9f}'
-    print(msg1.format('U','Z','H','G'))
-    print(msg2.format(U,Z,H,G))
+    Z,H,G = thermochemistry(GOF)
+    U = potential_energy(GOF)
+    print(f"{'U': ^14}\t{'Z': ^14}\t{'H': ^14}\t{'G': ^14}")
+    print(f"{U: 03.9f}\t{Z: 03.9f}\t{H: 03.9f}\t{G: 03.9f}")
 
 # If the matplotlib module is available, create these functions
 try:
@@ -130,15 +127,16 @@ else:
 
         Returns
         -------
-        matplotlib.figure.Figure
-            matplotlib figure object with the convergence already included
+        matplotlib.figure.Figure, list 
+            matplotlib figure object with the convergence already included and a
+            list of numbers with the thresholds of convergence for each parameter.
         """
         HEIGHT = 800
         WIDTH = 600
         DPI = 100.0
-        Links = GOF[JobId].GetLinks(103)
-        Items = [map(lambda x: x.Value,i.conversion) for i in Links
-                if i.conversion]
+        Links = GOF[JobId].get_links(103)
+        #Items = [map(lambda x: x.Value,i.conversion) for i in Links
+        #        if i.conversion]
         #Force, RMSForce, Disp, RMSDisp = zip(*Items)
         Force = []
         RMSForce = []
@@ -198,7 +196,7 @@ else:
                 ax.set_ylabel(label)
                 ax.plot(x,y)
         return f, thresholds
-    def PlotThresholds(fig,Thresholds=None):
+    def PlotThresholds(fig,thresholds=None):
         """
         Convenience function to plot horizontal lines for the figure produced
         by PlotConvergence.
@@ -212,9 +210,9 @@ else:
             (the default is [0.000450,0.0003,0.0018,0.0012]).
 
         """
-        if Thresholds is None:
-            Thresholds = [0.000450,0.0003,0.0018,0.0012]
-        for i,j in zip(fig.axes,Thresholds):
+        if thresholds is None:
+            thresholds = [0.000450,0.0003,0.0018,0.0012]
+        for i,j in zip(fig.axes,thresholds):
             xlim = i.get_xlim()
             i.plot(xlim,(j,j),'r')
             i.set_xlim(xlim)
@@ -238,7 +236,7 @@ else:
         """
         if UnitConverter is None:
             UnitConverter = ("hartree",lambda x: x)
-        Energies = [Link.energy for Link in GOF.GetLinks(502) if Link.energy]
+        Energies = [Link.energy for Link in GOF.get_links(502) if Link.energy]
         Energy = list(map(UnitConverter[-1],Energies))
         x = range(len(Energy))
         HEIGHT = 800
@@ -247,6 +245,6 @@ else:
         fig = pyplot.figure(figsize=(HEIGHT/DPI,WIDTH/DPI))
         ax = pyplot.gca()
         ax.plot(x,Energy)
-        ax.set_ylabel("Potential Energy {}".format(UnitConverter[0]))
+        ax.set_ylabel(f"Potential Energy {UnitConverter[0]}")
         ax.set_xlabel("Step number")
         return fig
