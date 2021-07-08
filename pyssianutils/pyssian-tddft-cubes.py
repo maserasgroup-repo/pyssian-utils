@@ -166,7 +166,7 @@ def CreateParser():
                         .in.sub will be run (q4 for cq4m4, 4 for c4m8)""",
                         default='12')
     parser.add_argument('--version',action='version',
-                        version='script version {}'.format(__version__))
+                        version=f'script version {__version__}')
     return parser
 def ParseArguments(args):
     Queues = { '4': {'nprocs':'4','queue':'c4m8'},
@@ -175,7 +175,8 @@ def ParseArguments(args):
               '12': {'nprocs':'12','queue':'c12m24'},
               '20': {'nprocs':'20','queue':'c20m48'},
               '24': {'nprocs':'24','queue':'c24m128'},
-              '28': {'nprocs':'28','queue':'c28m128'} }
+              '28': {'nprocs':'28','queue':'c28m128'},
+              '36': {'nprocs':'36','queue':'c36m192'} }
     Filler = dict(name=args.name,
                   queue=Queues[args.queue]['queue'],
                   nprocs=Queues[args.queue]['nprocs'],
@@ -193,7 +194,7 @@ Filler, IFile, SelectedStates, DoSquaresFirst, DoMulti = ParseArguments(args)
 
 with GaussianOutFile(IFile,[914,]) as GOF:
     GOF.read()
-l914 = GOF.GetLinks(914)[-1]
+l914 = GOF.get_links(914)[-1]
 
 total_orbitals = set()
 

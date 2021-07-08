@@ -2,21 +2,23 @@
 pyssian-utils
 ==============
 
--------------------------------------------------------
-A toolkit of scripts for everyday Maseras' group work
--------------------------------------------------------
-
 .. project-description-start
 
-This project is a repository of command-line tools developed using pyssian
-(mostly) to facilitate the everyday work. From generating bash scripts to run
-all calculations in a certain folder to more sofisticated ways of generating
-and running gaussian input files.
+----------------------------------------------------------------------
+A toolkit of scripts for usual computational tasks involving Gaussian
+----------------------------------------------------------------------
 
-.. setup-instructions
+This project is a repository of command-line tools developed using 
+`pyssian <https://github.com/maserasgroup-repo/pyssian>`_ to facilitate the 
+everyday work. From generating bash scripts to run all calculations in a certain 
+folder to more sofisticated ways of generating and running gaussian input files.
+
+.. project-description-end
 
 Getting Started
 ---------------
+
+.. setup-instructions
 
 These instructions will get you a copy of the project up and running on your
 local machine for development and testing purposes. See deployment for notes on
@@ -27,62 +29,16 @@ Prerequisites
 
 - python >= 3.6
 - python library: setuptools
+- python library: pathlib
 - python library: numpy
-- python library: matplotlib
-- python library: pyssian
-
-Installing the dependencies
-...........................
-
-python3.7 installation in Ubuntu 18.04 LTS
-
-.. code:: shell-session
-
-   $ sudo apt-get update
-   $ sudo apt-get install python3.7 python3.7-dev
-
-
-If for any reason it is not reachable:
-
-.. code:: shell-session
-
-   $ sudo add-apt-repository ppa:deadsnakes/ppa
-   $ sudo apt-get update
-   $ sudo apt-get install python3.7 python3.7-dev
-
-Now you can skip this if you don't want to set up a virtual environment
-(Remember to change NewFolder for the actual path of the directory where you
-want the virtual environment)
-
-.. code:: shell-session
-
-   $ sudo apt-get install python3.7-venv
-   $ python3.7 -m venv NewFolder
-   $ source NewFolder/bin/activate
-
-Now we install the python default installer pip
-
-.. code:: shell-session
-
-   $ python -m pip install pip
-   $ python -m pip install --upgrade pip
-   $ python -m pip install setuptools
-
-If it proceeded without any errors (pip and setuptools should already be installed)
-
-Now to install the optional dependencies (Skip if you don't desire them):
-
-.. code:: shell-session
-
-   $ python -m pip install numpy
-   $ python -m pip install matplotlib
+- python library: pyssian >= 1.0.0
+- python library: matplotlib (optional)
 
 Installing pyssian-utils
 ........................
 
 
 Get the source code either git or download and unpack it into "pyssian-utils"
-(Currently you need the developer permission to access the code)
 
 .. code:: shell-session
 
@@ -95,11 +51,16 @@ Now install pyssian
    $ cd pyssian-utils
    $ python -m pip install .
 
+.. note::
+   It is recommended to download the source code in case some modifications 
+   specific to your work environment are necessary. (i.e. modifying the default 
+   options to suit your needs, different queue system, different queues...)
 
-Installing with the -e option before NewDir will make that all the changes in
-the source files will have have effect when you call them through their alias.
-However, you have to manually clean the folder generated in case of uninstalling
-the package.
+Future installation (not yet available)
+
+.. code:: shell-session
+
+   $ python -m pip install pyssianutils
 
 Uninstalling pyssian-utils
 ..........................
@@ -109,12 +70,30 @@ Uninstalling pyssian-utils
    $ cd pyssian-utils
    $ python -m pip uninstall pyssianutils
 
+.. note::
+   In case of using the -e flag for the installation remember to remove the .egg
+   folder that is generated upon installation after running 
+   "pip uninstall pyssianutils" command.
+
+Building the docs
+-----------------
+
+To build the docs go to the docs folder where you have the source code then run:
+
+.. code:: shell-session
+
+   $ cd sphinx/
+   $ python -m pip install -r requirements.txt
+   $ make html
+
+Now if you go to the _docs/html folder you can open the index.html file in your 
+folder and navigate through the documentation easily. 
 
 Developed with
 --------------
 
-- python 3.7.3
-- Ubuntu 16.04 LTS
+- python 3.7
+- Ubuntu 16.04 LTS, 18.04 LTS and 20.04 LTS
 
 Additional features
 -------------------
@@ -141,11 +120,21 @@ or read the documentation.
 Authors
 -------
 
-* **Raúl Pérez-Soto** - *Initial work* - [rperezsoto](https://github.com/rperezsoto)
-
-See also the list of [contributors](https://github.com/rperezsoto/contributors) who participated in this project.
+* **Raúl Pérez-Soto** - [rperezsoto](https://github.com/rperezsoto)
+* **Maria Besora** - [MaBeBo](https://github.com/MaBeBo)
+* **Feliu Maseras** - [maserasgroup](https://github.com/maserasgroup)
 
 License
 -------
 
-(None currently)
+pyssianutils is freely available under an [MIT](https://opensource.org/licenses/MIT)
+
+How to cite
+-----------
+
+If you consider that either pyssian-utils or the pyssian library provided 
+enough support to your research that it deserves to cited please do cite the 
+pyssian library using the DOI at the following address: 
+
+.. image:: https://zenodo.org/badge/333841133.svg
+   :target: https://zenodo.org/badge/latestdoi/333841133

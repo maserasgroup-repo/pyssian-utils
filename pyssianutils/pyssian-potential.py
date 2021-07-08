@@ -8,7 +8,7 @@ import os
 
 import argparse
 from pyssian import GaussianOutFile
-from pyssianutils.functions import PotentialEnergy, Write2file
+from pyssianutils.functions import potential_energy, write_2_file
 
 __version__ = '0.0.0'
 
@@ -28,7 +28,7 @@ parser.add_argument('--Method',help="""If the Final Potential energy is not the
 parser.add_argument('-q','--quiet',help="""if enabled does not print errors when
                     parsing files and instead only prints their name """,
                     default=False,action='store_true')
-parser.add_argument('--version',version='script version {}'.format(__version__),
+parser.add_argument('--version',version=f'script version {__version__}',
                     action='version')
 
 if __name__ == "__main__":
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     OutFile = args.OutFile
     if args.OutFile is not None:
         OutFile = os.path.abspath(args.OutFile)
-        WriteOutput = Write2file(OutFile)
+        WriteOutput = write_2_file(OutFile)
     else:
         WriteOutput = print
 
@@ -59,7 +59,7 @@ if __name__ == "__main__":
         with GaussianOutFile(InFilepath,[502,508,804,913]) as GOF:
             GOF.update()
         try:
-            U = PotentialEnergy(GOF,args.Method)
+            U = potential_energy(GOF,args.Method)
         except IndexError as e:
             if not args.quiet:
                 raise e

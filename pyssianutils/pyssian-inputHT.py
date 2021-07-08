@@ -2,8 +2,9 @@
 
 """
 Generates a gaussian input files from the last geometry of gaussian output files
-or from the geometry of gaussian input files using a Header and/or Tail Files
-which contain everything but the geometry and spin/charge
+or from the geometry of gaussian input files or a .xyz file using a Header 
+and/or Tail Files which contain everything but the geometry and spin/charge (
+which must be provided for .xyz files)
 """
 
 import os
@@ -17,39 +18,58 @@ __version__ = '0.0.0'
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('Files',help='Gaussian Input/Output Files',nargs='+')
-parser.add_argument('-L','--ListFile',help="""When enabled instead of
-                    considering the files provided as the gaussian output files
-                    considers the file provided as a list of gaussian output
-                    files""",action='store_true')
+parser.add_argument('-L','--ListFile',
+                    action='store_true',
+                    help="""When enabled instead of considering the files 
+                    provided as the gaussian output files considers the file 
+                    provided as a list of gaussian output files""")
 group_marker = parser.add_mutually_exclusive_group()
-group_marker.add_argument('-m','--marker',help="""Text added to the filename to
-                    differentiate the original .out file from the newly created
-                    one. """,default='new')
-group_marker.add_argument('--no-marker',help="""Files will be created with the
-                    same file name as the provided files but with the '.in'
-                    extension""", action='store_true',default=False,
-                    dest='no_marker')
-parser.add_argument('-O','--OutDir',help=""" Where to create the new files,
-                    defaults to the current directory""",default='')
-parser.add_argument('--Step',help=""" Will attempt to access the ith
-                    optimization step of a gaussian output file to extract its
-                    geometry on all files provided. 'initial geometry'='1'""",
-                    default=None)
-parser.add_argument('-H','--Header',help="""Header File that contains the queue,
-                    memory as well as the gaussian calculation instructions
-                    The output will start at the charge-spin line """,
-                    default=None)
-parser.add_argument('-T','--Tail',help="""Tail File that contains the extra
-                    options, such as pseudopotentials, basis sets """,
-                    default=None)
-parser.add_argument('--version',version='script version {}'.format(__version__),
+group_marker.add_argument('-m','--marker',
+                          default='new',
+                          help="""Text added to the filename to differentiate 
+                          the original .out file from the newly created one.""")
+group_marker.add_argument('--no-marker',
+                          action='store_true',
+                          default=False,
+                          dest='no_marker',
+                          help="""Files will be created with the same file name 
+                          as the provided files but with the '.in' extension""")
+parser.add_argument('-O','--OutDir',
+                    default='',
+                    help=""" Where to create the new files, defaults to the 
+                    current directory""")
+parser.add_argument('--Step',
+                    default=None,
+                    help=""" Will attempt to access the ith optimization step of
+                    a gaussian output file to extract its geometry on all files 
+                    provided. 'initial geometry'='1'""")
+parser.add_argument('-H','--Header',
+                    default=None,
+                    help="""Header File that contains the queue, memory as well 
+                    as the gaussian calculation instructions. The output will 
+                    start at the charge-spin line """)
+parser.add_argument('-T','--Tail',
+                    default=None,
+                    help="""Tail File that contains the extra options, such as 
+                    pseudopotentials, basis sets """)
+parser.add_argument('--charge',
+                    default=0,
+                    type=int,
+                    help="""Net charge of the whole system""")
+parser.add_argument('--spin',
+                    default=1,
+                    type=int,
+                    help="""spin of the system""")
+parser.add_argument('--version',
+                    version=f'script version {__version__}',
                     action='version')
 
 Extension2Class = { 'in':'Input',
                    'com':'Input',
                    'gjf':'Input',
                    'log':'Output',
-                   'out':'Output'}
+                   'out':'Output',
+                   'xyz':'xyz'}
 
 FileStruct = '{Header}\n\n{Title}\n\n{charge} {spin}\n{Coords}\n\n{Tail}\n\n\n'
 
@@ -114,19 +134,22 @@ if __name__ == "__main__":
         elif FileClass == 'Output':
             with GaussianOutFile(InFilepath,[1,101,202]) as GOF:
                 GOF.update()
-            L101 = GOF.GetLinks(101)[0]
+            L101 = GOF.get_links(101)[0]
             spin = L101.spin
             charge = L101.charge
             if args.Step is None:
-                L202 = GOF.GetLinks(202)[-1]
+                L202 = GOF.get_links(202)[-1]
             else:
-                L202 = GOF[0].GetLinks(202)[args.Step-1]
+                L202 = GOF[0].get_links(202)[args.Step-1]
             Geom = Geometry.from_L202(L202)
+        elif FileClass == 'xyz': 
+            Geom = Geometry.from_xyz(IFile)
+            spin = args.spin
+            charge = args.charge
         else:
-            msg = 'File {} was ignored due to unrecognized extension {}'
-            print(msg.format(Name,extension))
+            print(f'File {Name} was ignored due to unrecognized extension {extension}')
         with open(OutFile,'w') as F:
             txt = FileStruct.format(Header=Header,Tail=Tail,spin=spin,
-                                Coords=str(Geom),Title=Name+marker,
-                                charge=charge)
+                                    Coords=str(Geom),Title=Name+marker,
+                                    charge=charge)
             F.write(txt)

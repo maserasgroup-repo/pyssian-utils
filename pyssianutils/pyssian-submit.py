@@ -5,7 +5,7 @@ Checks all .in files in the current directory to generate a SubmitScript.sh
 that properly sends them to their queues (Files with a matching .out file
 are ignored as default). It checks in which queue they should go according
 to the values of nprocshared and %mem. To use the generated script run in
-kimikhome: 'chmod +x SubmitScript.sh; ./SubmitScript;'
+the cluster: 'chmod +x SubmitScript.sh; ./SubmitScript;'
 """
 
 import os
@@ -19,7 +19,7 @@ Queue = namedtuple('Queue','nprocesors memory'.split())
 QUEUES = {4:Queue(4,8),8:Queue(8,24),
           12:Queue(12,24),20:Queue(20,48),
           24:Queue(24,128),28:Queue(28,128),
-          'q4':Queue('q4',4)}
+          36:Queue(36,192),'q4':Queue('q4',4)}
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('software',choices=['g09','g16'],default='g09',
@@ -28,7 +28,7 @@ parser.add_argument('--ascomments',help="""If enabled found .in files with a
                 matching .out are included as comments""",action='store_true')
 parser.add_argument('--norun',help="""If enabled the submit command will instead
                 just generate the .in.sub file""",action='store_true')
-parser.add_argument('--version',version='script version {}'.format(__version__),
+parser.add_argument('--version',version=f'script version {__version__}',
                     action='version')
 
 
@@ -44,14 +44,14 @@ def InspectFile(Filename):
             QueueNum = int(line.strip().split("=")[-1])
             break
     else:
-        raise NotFoundError('nproc not found in {}'.format(Filename))
+        raise NotFoundError(f'nproc not found in {Filename}')
     # Find Mem
     for line in Text:
         if '%mem' in line:
             memory = int(line.strip().split("=")[-1][:-2])
             break
     else:
-        warnings.warn('mem not found in {}, ignoring "cq4m4 queue"'.format(Filename))
+        warnings.warn(f'mem not found in {Filename}, ignoring "cq4m4 queue"')
         return Filename, QUEUES[QueueNum]
     if QueueNum == 4 and memory < 4000:
         queue = QUEUES['q4']

@@ -8,9 +8,10 @@ the value of the 'Done'
 import os
 
 import argparse
-from pyssian import GaussianOutFile, __version__
-from pyssianutils.functions import Thermochemistry, PotentialEnergy, Write2file
+from pyssian import GaussianOutFile
+from pyssianutils.functions import thermochemistry, potential_energy, write_2_file
 
+__version__ = '0.0.0'
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('Files',help='Gaussian Output File',nargs='+')
@@ -29,7 +30,7 @@ parser.add_argument('--Method',help="""If the Final Potential energy is not the
 parser.add_argument('-q','--quiet',help="""if enabled does not print errors when
                     parsing files and instead only prints their name """,
                     default=False,action='store_true')
-parser.add_argument('--version',version='pyssian {}'.format(__version__),
+parser.add_argument('--version',version=f'script version{__version__}',
                     action='version')
 
 if __name__ == "__main__":
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     OutFile = args.OutFile
     if args.OutFile is not None:
         OutFile = os.path.abspath(args.OutFile)
-        WriteOutput = Write2file(OutFile)
+        WriteOutput = write_2_file(OutFile)
     else:
         WriteOutput = print
 
@@ -66,8 +67,8 @@ if __name__ == "__main__":
         with GaussianOutFile(InFilepath,[1,502,508,716,804,913,9999]) as GOF:
             GOF.update()
         try:
-            Z,H,G = Thermochemistry(GOF)
-            U = PotentialEnergy(GOF,args.Method)
+            Z,H,G = thermochemistry(GOF)
+            U = potential_energy(GOF,args.Method)
         except IndexError as e:
             if not args.quiet:
                 raise e
