@@ -7,7 +7,7 @@ matplotlib.pyplot is available the Plot Functions become available
 def write_2_file(File):
     """
     Creates a wrapper for appending text to a certain File. Assumes that each
-    call is quivalent to writing a single line.
+    call is equivalent to writing a single line.
     """
     def Writer(txt):
         with open(File,'a') as OFile:
@@ -55,7 +55,7 @@ def potential_energy(GOF,method='default'):
         energy = GOF.get_links(804)[-1].MP2
     elif method == 'mp2scs':
         HF = GOF.get_links(502)[-1].energy
-        SCS_corr = GOF.get_links(804)[-1].Get_SCScorr()
+        SCS_corr = GOF.get_links(804)[-1].get_SCScorr()
         energy = HF + SCS_corr
     elif method == 'ccsdt': # Search for CCSD(T) energy or default to MP4
         Aux = GOF.get_links(913)[-1]
@@ -204,8 +204,8 @@ else:
         Parameters
         ----------
         fig : matplotlib.figure.Figure
-            Figure where the Thresholds are going to be drawn
-        Thresholds : list
+            Figure where the thresholds are going to be drawn
+        thresholds : list
             List of the threshold values of len==4
             (the default is [0.000450,0.0003,0.0018,0.0012]).
 

@@ -5,7 +5,7 @@ Checks all .in files in the current directory to generate a SubmitScript.sh
 that properly sends them to their queues (Files with a matching .out file
 are ignored as default). It checks in which queue they should go according
 to the values of nprocshared and %mem. To use the generated script run in
-kimikhome: 'chmod +x SubmitScript.sh; ./SubmitScript;'
+the cluster: 'chmod +x SubmitScript.sh; ./SubmitScript;'
 """
 
 import os
