@@ -1,0 +1,11 @@
+# Setup file and LICENSE
+include setup.py
+include LICENSE
+
+# include the scripts
+include pyssianutils/pyssian-*.py
+
+# Exclude Files
+global-exclude *.pyc
+global-exclude .git
+global-exclude .vscode
