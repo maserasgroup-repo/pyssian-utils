@@ -175,7 +175,8 @@ def ParseArguments(args):
               '12': {'nprocs':'12','queue':'c12m24'},
               '20': {'nprocs':'20','queue':'c20m48'},
               '24': {'nprocs':'24','queue':'c24m128'},
-              '28': {'nprocs':'28','queue':'c28m128'} }
+              '28': {'nprocs':'28','queue':'c28m128'},
+              '36': {'nprocs':'36','queue':'c36m192'} }
     Filler = dict(name=args.name,
                   queue=Queues[args.queue]['queue'],
                   nprocs=Queues[args.queue]['nprocs'],

@@ -88,7 +88,7 @@ Queue = namedtuple('Queue','nprocesors memory'.split())
 QUEUES = {4:Queue(4,8),8:Queue(8,24),
           12:Queue(12,24),20:Queue(20,48),
           24:Queue(24,128),28:Queue(28,128),
-          'q4':Queue('q4',4)}
+          36:Queue(36,192),'q4':Queue('q4',4)}
 def submitline(File,software):
     """
     Inspects the file, selects the queue and returns the string that corresponds

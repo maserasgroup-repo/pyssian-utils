@@ -12,7 +12,7 @@ from pathlib import Path
 import argparse
 
 from pyssian import GaussianOutFile
-from pyssianutils.functions import Thermochemistry, PotentialEnergy, write_2_file
+from pyssianutils.functions import thermochemistry, potentialEnergy, write_2_file
 
 __version__ = '0.0.0'
 
