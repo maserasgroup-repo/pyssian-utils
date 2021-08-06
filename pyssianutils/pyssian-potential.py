@@ -57,7 +57,7 @@ if __name__ == "__main__":
             continue
         InFilepath = os.path.abspath(IFile)
         Name = IFile
-        with GaussianOutFile(InFilepath,[502,508,804,913]) as GOF:
+        with GaussianOutFile(InFilepath,[120,502,508,804,913]) as GOF:
             GOF.update()
         try:
             U = potential_energy(GOF,args.Method)

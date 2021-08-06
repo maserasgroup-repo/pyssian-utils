@@ -65,7 +65,7 @@ if __name__ == "__main__":
             continue
         InFilepath = os.path.abspath(IFile)
         Name = IFile
-        with GaussianOutFile(InFilepath,[1,502,508,716,804,913,9999]) as GOF:
+        with GaussianOutFile(InFilepath,[1,120,502,508,716,804,913,9999]) as GOF:
             GOF.update()
         try:
             Z,H,G = thermochemistry(GOF)
