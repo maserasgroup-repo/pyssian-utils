@@ -45,7 +45,9 @@ def potential_energy(GOF,method='default'):
     GOF : GaussianOutFile
     Method : string
         For DFT and HF the default behavior is correct. For Post-HF methods
-        it needs to be specified. Currently: ['mp2','mp2scs','MP4','ccsdt']
+        it needs to be specified. 
+        Currently: ['oniom','mp2','mp2scs','MP4','ccsdt']
+
     Returns
     -------
     float
@@ -63,6 +65,9 @@ def potential_energy(GOF,method='default'):
     elif method == 'mp4':
         Aux = GOF.get_links(913)[-1]
         energy = Aux.MP4
+    elif method == 'oniom': 
+        Aux = GOF.get_links(120)[-1]
+        energy = Aux.energy
     else: # Otherwise go to the "Done(...)" Energy
         energy = None
         if 508 in GOF._Parsers: 

@@ -25,7 +25,8 @@ parser.add_argument('-O','--OutFile',help="""File to write the Data. If it
 parser.add_argument('--Method',help="""If the Final Potential energy is not the
                     Energy of the 'SCF Done:' the target Potential Energy
                     has to be specified, otherwise defaults to the energy of the
-                    'SCF Done:' """, choices=['mp2','mp2scs','mp4','ccsdt'],
+                    'SCF Done:' """, 
+                    choices=['oniom','mp2','mp2scs','mp4','ccsdt'],
                     default='default',type=lambda x: x.lower())
 parser.add_argument('-q','--quiet',help="""if enabled does not print errors when
                     parsing files and instead only prints their name """,
