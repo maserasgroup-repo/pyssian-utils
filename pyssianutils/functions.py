@@ -70,10 +70,11 @@ def potential_energy(GOF,method='default'):
         energy = Aux.energy
     else: # Otherwise go to the "Done(...)" Energy
         energy = None
-        if 508 in GOF._Parsers: 
-            energy = GOF.get_links(508)[-1].energy
-        if 502 in GOF._Parsers and energy is None:
-            energy = GOF.get_links(502)[-1].energy
+        links = GOF.get_links(502,508)
+        if links:
+            energy = GOF.get_links(502,508)[-1].energy
+        if links and energy is None: 
+            energy = GOF.get_links(502)[-2].energy
     return energy
 
 # Console Utils
