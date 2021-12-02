@@ -209,9 +209,9 @@ Lets assume the following project structure:
    project-folder
    $ ls project-folder/*/
    minima/ ts/
-   $ls project-folder/minima/*
+   $ ls project-folder/minima/*
    A.in A.out B.gjf B.log
-   $ls project-folder/ts/*
+   $ ls project-folder/ts/*
    TS1.in TS1.out
 
 Lets assume that all were calculated with b3lyp in vacuum and we want to change 
@@ -230,9 +230,9 @@ Now we check our directory
    project-folder project-folder-wb97xd SubmitScript.sh
    $ ls project-folder-wb97xd/*/
    minima/ ts/
-   $ls project-folder-wb97xd/minima/*
+   $ ls project-folder-wb97xd/minima/*
    A.in B.in
-   $ls project-folder-wb97xd/ts/*
+   $ ls project-folder-wb97xd/ts/*
    TS1.in
 
 Now, lets assume that we run the calculations and all of them end without trouble. 
@@ -251,9 +251,9 @@ Now our directory will look like this:
    project-folder project-folder-wb97xd SubmitScript.sh
    $ ls project-folder-wb97xd/*/
    minima/ ts/
-   $ls project-folder-wb97xd/minima/*
+   $ ls project-folder-wb97xd/minima/*
    A.in A.out A_SP.in B.in B.out B_SP.in
-   $ls project-folder-wb97xd/ts/*
+   $ ls project-folder-wb97xd/ts/*
    TS1.in TS1.out TS1_SP.in
 
 If we check the contents of the SubmitScript we will see that it is completely 
