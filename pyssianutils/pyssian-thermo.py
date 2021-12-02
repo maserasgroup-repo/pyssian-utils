@@ -87,6 +87,8 @@ if __name__ == "__main__":
         try:
             Z,H,G = thermochemistry(GOF)
         except IndexError as e:
+            if args.verbose: 
+                raise e
             Z = value_fmt.format('')
             H = value_fmt.format('')
             G = value_fmt.format('')
