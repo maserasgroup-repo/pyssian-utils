@@ -1,19 +1,24 @@
 #!/bin/usr/env python3
 
 """
-Checks all .in files in the current directory to generate a SubmitScript.sh
-that properly sends them to their queues (Files with a matching .out file
-are ignored as default). It checks in which queue they should go according
-to the values of nprocshared and %mem. To use the generated script run in
-the cluster: 'chmod +x SubmitScript.sh; ./SubmitScript;'
+Checks all .in files in the current directory or the provided folder to generate 
+a SubmitScript.sh that properly sends them to their queues (Files with a 
+matching .out file are ignored as default). It checks in which queue they should
+go according to the values of nprocshared and %mem. To use the generated script 
+run in the cluster: 'chmod +x SubmitScript.sh; ./SubmitScript;' or 
+'bash SubmitScript.sh'
 """
 
 import os
-import warnings
 import argparse
+from pathlib import Path
 from collections import namedtuple
+from itertools import groupby
 
-__version__ = '0.0.0'
+from pyssian.classutils import DirectoryTree
+from pyssian.gaussianclasses import GaussianInFile
+
+__version__ = '0.1.0'
 
 Queue = namedtuple('Queue','nprocesors memory'.split())
 QUEUES = {4:Queue(4,8),8:Queue(8,24),
@@ -24,6 +29,9 @@ QUEUES = {4:Queue(4,8),8:Queue(8,24),
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('software',choices=['g09','g16'],default='g09',
                     nargs='?')
+parser.add_argument('--recursive','-r',action='store_true',help="""If enabled it
+                    will recursively search in the subdirectories of the current 
+                    folder""")
 parser.add_argument('--ascomments',help="""If enabled found .in files with a
                 matching .out are included as comments""",action='store_true')
 parser.add_argument('--norun',help="""If enabled the submit command will instead
@@ -35,67 +43,149 @@ parser.add_argument('--version',version=f'script version {__version__}',
 class NotFoundError(RuntimeError):
     pass
 
-def InspectFile(Filename):
-    with open(Filename,'r') as F:
-        Text = [line.strip() for line in F]
-    # Find nproc
-    for line in Text:
-        if 'nproc' in line:
-            QueueNum = int(line.strip().split("=")[-1])
-            break
-    else:
-        raise NotFoundError(f'nproc not found in {Filename}')
-    # Find Mem
-    for line in Text:
-        if '%mem' in line:
-            memory = int(line.strip().split("=")[-1][:-2])
-            break
-    else:
-        warnings.warn(f'mem not found in {Filename}, ignoring "cq4m4 queue"')
-        return Filename, QUEUES[QueueNum]
-    if QueueNum == 4 and memory < 4000:
+def submitline(File,software,ascomment,norun):
+    """
+    Inspects the file, selects the queue and returns the string that corresponds
+    to the submission of the calculation to a queue system.
+
+    Parameters
+    ----------
+    File : Path
+        pathlib.Path pointing towards the input file to submit.
+    software : str
+        either 'g09' or 'g16'
+
+    Returns
+    -------
+    str
+
+    """
+
+    with GaussianInFile(File) as GIF: 
+        GIF.read()
+        nprocs = int(GIF.nprocs)
+        mem = GIF.mem
+    memory = int(mem[:-2])             # Assume 'xxxMB'
+    if mem[-2:] == 'GB': 
+        memory = memory*1024    # Translate to MB in case of GB
+    
+    if nprocs == 4 and software == 'g16':
+        queue = QUEUES['q4']
+    elif nprocs == 4 and memory < 4000:
         queue = QUEUES['q4']
     else:
-        queue = QUEUES[QueueNum]
-    return Filename,queue
-def PrepareScript(items,IgnoreOuts,TxtScript):
-    Header = ['#!/bin/bash\n','# Automated Submit Script\n']
-    Tail = []
-    Output = []
+        queue = QUEUES[nprocs]
+    
+    line = f'{{}}qs {software}.c{queue.nprocesors}m{queue.memory} {{}} {File.name};'
 
-    for line in Header:
-        Output.append(line)
+    if norun and ascomment: line = line.format('#','0')
+    elif norun:             line = line.format('' ,'0')
+    elif ascomment:         line = line.format('#','' )
+    else:                   line = line.format('' ,'' )
 
-    for File,queue,IsFinished in items:
-        if IsFinished:
-            if not IgnoreOuts:
-                Output.append('#'+TxtScript.format(GAU_Vers,queue,File))
+    return  line
+
+def select_marker(args):
+    """
+    This function encapsulates all the logic related to the selection of the
+    marker.
+    """
+    # Logic to handle the marker selection
+    if  args.no_marker:
+        marker = ''
+    elif args.marker is None:
+        if args.as_SP:
+            marker = 'SP'
         else:
-            Output.append(TxtScript.format(GAU_Vers,queue,File))
+            marker = 'new'
+    else:
+        marker = args.marker
 
-    for line in Tail:
-        Output.append(line)
-    return Output
+    #Handle the Overwriting notification
+    if args.inplace and args.no_marker and not args.overwrite:
+        raise ValueError("""Using the --inplace with --no-marker will replace
+                the previously existing '.in' files. To continue please re-run
+                the command but add the flag '--overwrite' (or '-ow').""")
+    return marker
 
+def prepare_filepaths(cwd,recursive=False):
+    """
+    This function encapsulates all the logic related to the generation of the
+    final paths to the files, directory and subdirectory creation as well as
+    paths to the template files.
+
+    Parameters
+    ----------
+    args : Namespace
+        Output of the ArgumentParser.parse_args function
+
+    Returns
+    -------
+    templates,geometries,newfiles
+        A tuple of three lists of the same size. Templates represents the
+        previously existing '.in' files. geometries the '.out' files provided
+        by the user and newfiles the '.in' files that are to be created.
+
+    """
+    # Prepare folder structure
+    if recursive:
+        dir = DirectoryTree(cwd)
+        outputs = list(dir.outfiles)
+        inputs = list(dir.infiles)
+    else:
+        inputs = cwd.glob('*.in')
+        outputs = cwd.glob('*.out')
+
+    # Find the matching files with the outputs
+    matching_inputs = [file.parent/f'{file.stem}.in' for file in outputs]
+
+    # Remove from the inputs the files present in matching_inputs
+    nomatch_inputs = list(set(str(file) for file in inputs) - set(str(file) for file in matching_inputs))
+    nomatch_inputs = [Path(file) for file in nomatch_inputs]
+
+    return nomatch_inputs,matching_inputs
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    SubmitText = 'qs {0}.c{1.nprocesors}m{1.memory} {2}'
-    if args.norun:
-        SubmitText = 'qs {0}.c{1.nprocesors}m{1.memory} 0 {2}'
-    IgnoreOuts = not args.ascomments
-    GAU_Vers = args.software
-    Aux = []
-    Files = os.listdir('.')
-    Finished_Calculations = tuple([File for File in Files if File.endswith('.out')])
-    for Item in Files:
-        if Item.endswith('.in'):
-            Name,queue = InspectFile(Item)
-            if Name.rsplit('.')[0]+'.out' in Finished_Calculations:
-                IsFinished = True
-            else:
-                IsFinished = False
-            Aux.append((Name,queue,IsFinished))
-    Out = PrepareScript(Aux,IgnoreOuts,SubmitText)
+
+    cwd = Path(os.getcwd())
+
+    without_output, with_outputs = prepare_filepaths(cwd,recursive=args.recursive)
+    entry = namedtuple('entry','folder file ascomment')
+    
+    files4submit = []
+
+    for file in without_output: 
+        files4submit.append(entry(folder=file.parent,file=file,ascomment=False))
+    
+     # add the ones that should go as comment
+    if args.ascomments:
+        for ofile in with_outputs: 
+            file = ofile.parent / (ofile.stem + '.in')
+            files4submit.append(entry(folder=file.parent,file=file,ascomment=True))
+
+    # Now create the submit script
+    SubmitLines = ['#!/bin/bash\n',
+                   '# Automated Submit Script\n'
+                   f'BASEDIR=$PWD;']
+    files4submit.sort(key=lambda x: x[0])
+    for folder,group in groupby(files4submit,key=lambda x: x[0]):
+        folder_path = folder.relative_to(cwd)
+        if str(folder_path) != '.': 
+            SubmitLines.append(f'echo "moving to {folder_path}";')
+            SubmitLines.append(f'cd {folder_path};')
+        entries = list(group)
+        for entry in entries:
+            folder,file,ascomment = entry
+            line = submitline(file,
+                              software=args.software,
+                              ascomment=ascomment,
+                              norun=args.norun)
+            SubmitLines.append(line)
+        if str(folder_path) != '.': 
+            SubmitLines.append('cd ${BASEDIR};')
+    SubmitLines.append('echo "Finished submiting calculations";')
+
     with open('SubmitScript.sh','w') as F:
-        F.write('\n'.join(Out))
+        F.write('\n'.join(SubmitLines))
+        

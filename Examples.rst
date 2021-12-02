@@ -40,18 +40,25 @@ As the -thermo and -inputHT scripts it has 3 general ways to specify inputs:
    Path/To/Files/File3.log     -33333
    Path/To/Files/File2.log     -22222
 
-the *--quiet* or *-q* option is recommended when more than one file are fed
-otherwise if any calculation did not succeed it will raise an error and stop the
-execution of pyssian-potential.py (and similarly for pyssian-thermo.py)
+the *--verbose* or *-v* option is will raise an error for files that do not have
+a potential energy or thermochemistry and will stop the execution.
 
 .. code:: shell-session
 
-   $ pyssian-potential.py -q Path/To/Files/File*.log Path/To/Error/Error.log
+   $ pyssian-potential.py Path/To/Error/Error.log Path/To/Files/File*.log 
                                  U
-   Path/To/Files/File1.log     -11111
-   Path/To/Files/File2.log     -22222
-   Path/To/Files/File3.log     -33333
-   Path/To/Error/Error.log
+   Path/To/Error/Error.log                              
+   Traceback (most recent call last):
+   File "/path/to/the/pyssianutils/installation/pyssian-thermo.py", line 7, in <module>
+      exec(compile(f.read(), __file__, 'exec'))
+   File "/path/to/the/pyssianutils/installation/pyssian-thermo.py", line 91, in <module>
+      raise e
+   File "/path/to/the/pyssianutils/installation/pyssian-thermo.py", line 88, in <module>
+      Z,H,G = thermochemistry(GOF)
+   File "/path/to/the/pyssianutils/installation/functions.py", line 33, in thermochemistry
+      Link = GOF[-1].get_links(716)[-1]
+   IndexError: list index out of range
+   
 
 .. potential-end
 
@@ -66,11 +73,12 @@ the value of the 'Done'
 
 .. code:: shell-session
 
-   $ pyssian-thermo.py -L Files.txt -q
+   $ pyssian-thermo.py -L Files.txt
                                  U        Z       H       G
    Path/To/Files/File1.log     -11111  -11111  -11111  -11111
    Path/To/Files/File3.log     -33333  -33333  -33333  -33333
    Path/To/Files/File2.log     -22222  -22222  -22222  -22222
+   Path/To/Files/SPFile.log    -22222                        
 
 .. thermo-end
 
@@ -79,18 +87,30 @@ pyssian-submit
 
 .. submit-start
 
-Checks all .in files in the current directory to generate a SubmitScript.sh
-that properly sends them to their queues (Files with a matching .out file
-are ignored as default). It checks in which queue they should go according
-to the values of nprocshared and %mem. To use the generated script run in
-the cluster: 'chmod +x SubmitScript.sh; ./SubmitScript;'
+Checks all .in files in the current directory or the provided folder
+to generate a SubmitScript.sh that properly sends them to their queues 
+(Files with a matching .out file are ignored as default). It checks in which 
+queue they should go according to the values of %nprocshared and %mem. To use 
+the generated script run in the cluster:
+
+.. code:: shell-session
+   
+   chmod +x SubmitScript.sh 
+   ./SubmitScript
+
+or 
+
+.. code:: shell-session
+
+   bash SubmitScript.sh
+
 
 .. note::
 
    This script is customized for the current Maseras' group needs and work 
    environment. This script will nontheless end without any error upon execution
-   but the generated submission script will be likely useless unless submission 
-   system is equal or similar to the Maseras' group. 
+   but the generated submission script will be likely useless unless the 
+   submission system is equal or similar to the Maseras' group. 
 
 
 .. code:: shell-session
@@ -189,9 +209,9 @@ Lets assume the following project structure:
    project-folder
    $ ls project-folder/*/
    minima/ ts/
-   $ls project-folder/minima/*
+   $ ls project-folder/minima/*
    A.in A.out B.gjf B.log
-   $ls project-folder/ts/*
+   $ ls project-folder/ts/*
    TS1.in TS1.out
 
 Lets assume that all were calculated with b3lyp in vacuum and we want to change 
@@ -210,9 +230,9 @@ Now we check our directory
    project-folder project-folder-wb97xd SubmitScript.sh
    $ ls project-folder-wb97xd/*/
    minima/ ts/
-   $ls project-folder-wb97xd/minima/*
+   $ ls project-folder-wb97xd/minima/*
    A.in B.in
-   $ls project-folder-wb97xd/ts/*
+   $ ls project-folder-wb97xd/ts/*
    TS1.in
 
 Now, lets assume that we run the calculations and all of them end without trouble. 
@@ -231,9 +251,9 @@ Now our directory will look like this:
    project-folder project-folder-wb97xd SubmitScript.sh
    $ ls project-folder-wb97xd/*/
    minima/ ts/
-   $ls project-folder-wb97xd/minima/*
+   $ ls project-folder-wb97xd/minima/*
    A.in A.out A_SP.in B.in B.out B_SP.in
-   $ls project-folder-wb97xd/ts/*
+   $ ls project-folder-wb97xd/ts/*
    TS1.in TS1.out TS1_SP.in
 
 If we check the contents of the SubmitScript we will see that it is completely 
