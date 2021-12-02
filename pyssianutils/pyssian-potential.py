@@ -10,7 +10,7 @@ import argparse
 from pyssian import GaussianOutFile
 from pyssianutils.functions import potential_energy, write_2_file
 
-__version__ = '0.0.0'
+__version__ = '0.0.1'
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('Files',help='Gaussian Output File',nargs='+')
@@ -26,9 +26,9 @@ parser.add_argument('--Method',help="""If the Final Potential energy is not the
                     'SCF Done:' """, 
                     choices=['oniom','mp2','mp2scs','mp4','ccsdt'],
                     default='default',type=lambda x: x.lower())
-parser.add_argument('-q','--quiet',help="""if enabled does not print errors when
-                    parsing files and instead only prints their name """,
-                    default=False,action='store_true')
+parser.add_argument('-v','--verbose',help="""if enabled it will raise an error
+                    anytime it is unable to find the energy of the provided file
+                    """, default=False,action='store_true')
 parser.add_argument('--version',version=f'script version {__version__}',
                     action='version')
 
@@ -48,8 +48,16 @@ if __name__ == "__main__":
     else:
         WriteOutput = print
 
+    n = largest_filename = max([len(File) for File in Files])
+    name_format = f'{{: <{n}}}'
+    spacer = '    '
+
     # Format for the numbers
-    txt = '{}\t{: 03.9f}'
+    number_fmt = '{: 03.9f}'
+    largest_value = len(number_fmt.format(10000))
+    value_fmt = f'{{: ^{largest_value}}}'
+
+    line_fmt = f'{name_format}{spacer}{value_fmt}'
 
     for IFile in Files:
         if not IFile: #In the case of an empty filename, write an empty line
@@ -58,14 +66,15 @@ if __name__ == "__main__":
         InFilepath = os.path.abspath(IFile)
         Name = IFile
         with GaussianOutFile(InFilepath,[120,502,508,804,913]) as GOF:
-            GOF.update()
-        try:
-            U = potential_energy(GOF,args.Method)
-        except IndexError as e:
-            if not args.quiet:
-                raise e
-            else:
-                WriteOutput(Name)
+            GOF.read()
+        
+        U = potential_energy(GOF,args.Method)
+        
+        if U is not None: 
+            U = value_fmt.format(number_fmt.format(U))
+        elif args.verbose:
+            raise RuntimeError(f'Potential Energy not found in file {IFile}')
         else:
-            msg = '{}\t{: 03.9f}'
-            WriteOutput(txt.format(Name,U))
+            U = value_fmt.format('')
+        
+        WriteOutput(line_fmt.format(IFile,U))

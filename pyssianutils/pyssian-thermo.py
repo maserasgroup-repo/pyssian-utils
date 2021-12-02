@@ -11,7 +11,7 @@ import argparse
 from pyssian import GaussianOutFile
 from pyssianutils.functions import thermochemistry, potential_energy, write_2_file
 
-__version__ = '0.0.0'
+__version__ = '0.0.1'
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('Files',help='Gaussian Output File',nargs='+')
@@ -28,9 +28,9 @@ parser.add_argument('--Method',help="""If the Final Potential energy is not the
                     'SCF Done:' """, 
                     choices=['oniom','mp2','mp2scs','mp4','ccsdt'],
                     default='default',type=lambda x: x.lower())
-parser.add_argument('-q','--quiet',help="""if enabled does not print errors when
-                    parsing files and instead only prints their name """,
-                    default=False,action='store_true')
+parser.add_argument('-v','--verbose',help="""if enabled it will raise an error
+                    anytime it is unable to find the thermochemistry of the 
+                    provided file""", default=False,action='store_true')
 parser.add_argument('--version',version=f'script version{__version__}',
                     action='version')
 
@@ -51,12 +51,19 @@ if __name__ == "__main__":
         WriteOutput = print
 
     # Header to know which is each column
-    LargestFileName = max([len(File) for File in Files])
-    msg_ini = '{: ^' + str(LargestFileName)+'}' + '\t{: ^14}'*4
-    WriteOutput(msg_ini.format('File','U','Z','H','G'))
+    n = largest_filename = max([len(File) for File in Files])
+    name_format = f'{{: <{n}}}'
 
-    # Format for the numbers
-    txt = '{}\t{: 03.9f}\t{: 03.9f}\t{: 03.9f}\t{: 03.9f}'
+    # Values format
+    number_fmt = '{: 03.9f}'
+    largest_value = len(number_fmt.format(10000))
+    value_fmt = f'{{: ^{largest_value}}}'
+    spacer = '    '
+
+    line_fmt = spacer.join([name_format,]+[value_fmt,]*4)
+
+    # Write table header
+    WriteOutput(line_fmt.format(f'{{: ^{n}}}'.format('File'),'U','Z','H','G'))
 
     # Actual parsing
     for IFile in Files:
@@ -66,14 +73,26 @@ if __name__ == "__main__":
         InFilepath = os.path.abspath(IFile)
         Name = IFile
         with GaussianOutFile(InFilepath,[1,120,502,508,716,804,913,9999]) as GOF:
-            GOF.update()
+            GOF.read()
+        
+        U = potential_energy(GOF,args.Method)
+        
+        if U is not None: 
+            U = value_fmt.format(number_fmt.format(U))
+        elif args.verbose:
+            raise RuntimeError(f'Potential Energy not found in file {IFile}')
+        else:
+            U = value_fmt.format('')
+
         try:
             Z,H,G = thermochemistry(GOF)
-            U = potential_energy(GOF,args.Method)
         except IndexError as e:
-            if not args.quiet:
-                raise e
-            else:
-                WriteOutput(Name)
+            Z = value_fmt.format('')
+            H = value_fmt.format('')
+            G = value_fmt.format('')
         else:
-            WriteOutput(txt.format(Name,U,Z,H,G))
+            Z = value_fmt.format(number_fmt.format(Z))
+            H = value_fmt.format(number_fmt.format(H))
+            G = value_fmt.format(number_fmt.format(G))
+        
+        WriteOutput(line_fmt.format(IFile,U,Z,H,G))
