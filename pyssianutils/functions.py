@@ -72,9 +72,9 @@ def potential_energy(GOF,method='default'):
         energy = None
         links = GOF.get_links(502,508)
         if links:
-            energy = GOF.get_links(502,508)[-1].energy
+            energy = links[-1].energy
         if links and energy is None: 
-            energy = GOF.get_links(502)[-2].energy
+            energy = links[-2].energy
     return energy
 
 # Console Utils
