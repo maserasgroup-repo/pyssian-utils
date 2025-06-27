@@ -20,6 +20,13 @@ pyssian-thermo
    :start-after: thermo-start
    :end-before: thermo-end
 
+pyssian-summary
+---------------
+
+.. include:: ../../Examples.rst
+   :start-after: summary-start
+   :end-before: summary-end
+
 pyssian-submit
 --------------
 
