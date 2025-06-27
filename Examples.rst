@@ -82,6 +82,38 @@ the value of the 'Done'
 
 .. thermo-end
 
+pyssian-summary
+...............
+
+.. summary-start
+
+Equivalent to pyssian-thermo when used without "--with-sp" flag. 
+
+.. code:: shell-session
+
+   $ pyssian-summary.py *.log
+           File                    U       Z       H       G        
+   Path/To/Files/File1.log      -11111  -11111  -11111  -11111      
+   Path/To/Files/File1_SP.log   -22222                              
+   Path/To/Files/File2.log      -22222  -22222  -22222  -22222      
+   Path/To/Files/File3.log      -33333  -33333  -33333  -33333      
+
+However, the --with-sp option will attempt to find files ending in the 
+--pattern PATTERN ("_SP" by default) and assume those files are the matching SP
+calculations of the same file without such termination. For those calculations 
+where it finds a matching SP file, it will print the U(SP) and the single point
+corrected free energy ( "G(final)" )
+
+.. code:: shell-session
+
+   $ pyssian-summary.py *.log
+     File        File_SP           U       Z       H       G     U(SP)  G(final)
+   File1.log   File1_SP.log     -11111  -11111  -11111  -11111  -11111   -11111  
+   File2.log                    -22222  -22222  -22222  -22222                   
+   File3.log                    -33333  -33333  -33333  -33333                   
+
+.. summary-end
+
 pyssian-submit
 ..............
 

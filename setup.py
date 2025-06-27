@@ -33,6 +33,7 @@ setuptools.setup(
              'pyssianutils/pyssian-submit.py',
              'pyssianutils/pyssian-inputHT.py',
              'pyssianutils/pyssian-asinput.py',
+             'pyssianutils/pyssian-summary.py',
              'pyssianutils/pyssian-tddft-cubes.py',
              'pyssianutils/pyssian-track.py'],
   project_urls={'Bug Reports': 'https://github.com/maserasgroup-repo/pyssian-utils/issues',
