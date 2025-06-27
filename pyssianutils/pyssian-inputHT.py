@@ -8,17 +8,21 @@ which must be provided for .xyz files)
 """
 
 import os
+from pathlib import Path
 import argparse
 from functools import partial
 
 from pyssian import GaussianOutFile, GaussianInFile
 from pyssian.classutils import Geometry
 
-__version__ = '0.0.0'
+__version__ = '0.1.0'
+
+GAUSSIAN_INPUT_SUFFIX = '.com'
+GAUSSIAN_OUTPUT_SUFFIX = '.log'
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('Files',help='Gaussian Input/Output Files',nargs='+')
-parser.add_argument('-L','--ListFile',
+parser.add_argument('files',help='Gaussian Input/Output Files',nargs='+')
+parser.add_argument('-L','--listfile',
                     action='store_true',
                     help="""When enabled instead of considering the files 
                     provided as the gaussian output files considers the file 
@@ -34,21 +38,22 @@ group_marker.add_argument('--no-marker',
                           dest='no_marker',
                           help="""Files will be created with the same file name 
                           as the provided files but with the '.in' extension""")
-parser.add_argument('-O','--OutDir',
+parser.add_argument('-O','--outdir',
                     default='',
                     help=""" Where to create the new files, defaults to the 
                     current directory""")
-parser.add_argument('--Step',
+parser.add_argument('--step',
                     default=None,
+                    type=int,
                     help=""" Will attempt to access the ith optimization step of
                     a gaussian output file to extract its geometry on all files 
                     provided. 'initial geometry'='1'""")
-parser.add_argument('-H','--Header',
+parser.add_argument('-H','--header',
                     default=None,
                     help="""Header File that contains the queue, memory as well 
                     as the gaussian calculation instructions. The output will 
                     start at the charge-spin line """)
-parser.add_argument('-T','--Tail',
+parser.add_argument('-T','--tail',
                     default=None,
                     help="""Tail File that contains the extra options, such as 
                     pseudopotentials, basis sets """)
@@ -63,93 +68,123 @@ parser.add_argument('--spin',
 parser.add_argument('--version',
                     version=f'script version {__version__}',
                     action='version')
+parser.add_argument('--suffix',default=None,nargs=2,help="""Input and output 
+                    suffix used for gaussian files""") 
 
-Extension2Class = { 'in':'Input',
-                   'com':'Input',
-                   'gjf':'Input',
-                   'log':'Output',
-                   'out':'Output',
-                   'xyz':'xyz'}
+def select_input_files(files,is_listfile=False): 
+    if is_listfile:
+        with open(files[0],'r') as F:
+            inputfiles = [line.strip() for line in F]
+    else:
+        inputfiles = files
+    return inputfiles
+def select_suffix(suffix): 
+    """
+    Ensures proper formatting of the suffixes used for gaussian inputs and 
+    outputs and changes the values of the global variables GAUSSIAN_INPUT_SUFFIX,
+    GAUSSIAN_OUTPUT_SUFFIX accordingly
+    """
+    
+    if suffix is None:
+        return GAUSSIAN_INPUT_SUFFIX
+    in_suffix = suffix
+    if in_suffix.startswith('.'): 
+        return in_suffix.rstrip()
+    return f'.{in_suffix}'
 
-FileStruct = '{Header}\n\n{Title}\n\n{charge} {spin}\n{Coords}\n\n{Tail}\n\n\n'
+def prepare_header(filepath):
+    
+    if filepath is None:
+        return ''
+    
+    with open(filepath,'r') as F:
+        aux = [line.strip() for line in F]
+    
+    while len(aux)>=1 and not aux[0]:
+        _ = aux.pop(0)
+    while len(aux)>=1 and not aux[-1]:
+        _ = aux.pop(-1)
+    
+    return '\n'.join(Aux)
+def prepare_tail(filepath):
+    if filepath is None: 
+        return ''
+    
+    with open(os.path.abspath(args.tail),'r') as F:
+        Aux = [line.strip() for line in F]
+    
+    while len(Aux)>=1 and not Aux[0]:
+        _ = Aux.pop(0)
+    
+    while len(Aux)>=1 and not Aux[-1]:
+        _ = Aux.pop(-1)
+    
+    return '\n'.join(Aux)
+
+def info_from_gau_output(filepath,step=None): 
+    with GaussianOutFile(filepath,[1,101,202]) as GOF:
+        GOF.update()
+    L101 = GOF.get_links(101)[0]
+    spin = L101.spin
+    charge = L101.charge
+    if step is None:
+        L202 = GOF.get_links(202)[-1]
+    else:
+        L202 = GOF[0].get_links(202)[step-1]
+    geom = Geometry.from_L202(L202)
+    return geom, charge, spin
+def info_from_gau_input(filepath):
+    with GaussianInFile(filepath) as GIF:
+        GIF.read()
+    geom = Geometry.from_Input(GIF)
+    spin = GIF.spin
+    charge = GIF.charge
+    return geom, charge, spin
+
+def extract_geom_spin_and_charge(filepath,charge=None,spin=None,step=None): 
+    suffix = Path(filepath).suffix
+    if suffix in ['.in','.com','.gjf']: 
+        return info_from_gau_input(filepath)
+    if suffix in ['.log','.out'] and step is None:
+        return info_from_gau_output(filepath)
+    elif suffix in ['.log','.out']:
+        return info_from_gau_output(filepath,step)
+    if suffix == '.xyz': 
+        return Geometry.from_xyz(filepath), charge, spin
+    raise NotImplementedError(f'files with suffix "{suffix}" cannot be interpreted')
+
+filestructure = '{header}\n\n{title}\n\n{charge} {spin}\n{coords}\n\n{tail}\n\n\n'
 
 if __name__ == "__main__":
     args = parser.parse_args()
 
-    if args.ListFile:
-        with open(args.Files[0],'r') as F:
-            Files = [line.strip() for line in F]
-    else:
-        Files = args.Files
+    inputfiles = select_input_files(args.files,args.listfile)
 
-    if args.Step is not None:
-        args.Step = int(args.Step)
-
-    if  args.no_marker:
+    if args.no_marker:
         marker = ''
     else:
-        marker = '_' + args.marker
+        marker = f'_{args.marker}'
 
-    OutDir = os.path.abspath(args.OutDir)+'/{{}}{}.in'.format(marker)
+    outdir = Path(args.outdir)
+    header = prepare_header(args.header)
+    tail = prepare_tail(args.tail)
+    suffix = select_suffix(args.suffix)
 
+    template = f'{header}\n\n{{title}}\n\n{{charge}} {{spin}}\n{{coords}}\n\n{tail}\n\n\n'
 
-    # Prepare Header
-    if args.Header is None:
-        Header = ''
-    else:
-        with open(os.path.abspath(args.Header),'r') as F:
-            Aux = [line.strip() for line in F]
-        while len(Aux)>=1 and not Aux[0]:
-            _ = Aux.pop(0)
-        while len(Aux)>=1 and not Aux[-1]:
-            _ = Aux.pop(-1)
-        Header = '\n'.join(Aux)
-    # Prepare Tail
-    if args.Tail is None:
-        Tail = ''
-    else:
-        with open(os.path.abspath(args.Tail),'r') as F:
-            Aux = [line.strip() for line in F]
-        while len(Aux)>=1 and not Aux[0]:
-            _ = Aux.pop(0)
-        while len(Aux)>=1 and not Aux[-1]:
-            _ = Aux.pop(-1)
-        Tail = '\n'.join(Aux)
-
-
-
-    for IFile in Files:
-        print(IFile)
-        InFilepath = os.path.abspath(IFile)
-        Name = InFilepath.split('/')[-1].split('.')[0]
-        extension = InFilepath.rsplit('.')[-1]
-        FileClass = Extension2Class[extension]
-        OutFile = OutDir.format(Name)
-        if FileClass == 'Input':
-            with GaussianInFile(InFilepath) as GIF:
-                GIF.read()
-            Geom = Geometry.from_Input(GIF)
-            spin = GIF.spin
-            charge = GIF.charge
-        elif FileClass == 'Output':
-            with GaussianOutFile(InFilepath,[1,101,202]) as GOF:
-                GOF.update()
-            L101 = GOF.get_links(101)[0]
-            spin = L101.spin
-            charge = L101.charge
-            if args.Step is None:
-                L202 = GOF.get_links(202)[-1]
-            else:
-                L202 = GOF[0].get_links(202)[args.Step-1]
-            Geom = Geometry.from_L202(L202)
-        elif FileClass == 'xyz': 
-            Geom = Geometry.from_xyz(IFile)
-            spin = args.spin
-            charge = args.charge
-        else:
-            print(f'File {Name} was ignored due to unrecognized extension {extension}')
-        with open(OutFile,'w') as F:
-            txt = FileStruct.format(Header=Header,Tail=Tail,spin=spin,
-                                    Coords=str(Geom),Title=Name+marker,
-                                    charge=charge)
+    for ifile in inputfiles:
+        print(ifile)
+        infilepath = Path(ifile)
+        stem = infilepath.stem
+        extension = infilepath.suffix[1:]
+        ofile = outdir/f'{stem}{marker}{suffix}'
+        geom,charge,spin = extract_geom_spin_and_charge(infilepath,
+                                                        charge=args.charge,
+                                                        spin=args.spin,
+                                                        step=args.step)
+        with open(ofile,'w') as F:
+            txt = template.format(title=f'{stem}{marker}',
+                                  charge=charge,
+                                  spin=spin,
+                                  coords=str(geom))
             F.write(txt)
