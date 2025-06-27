@@ -105,21 +105,21 @@ def prepare_header(filepath):
     while len(aux)>=1 and not aux[-1]:
         _ = aux.pop(-1)
     
-    return '\n'.join(Aux)
+    return '\n'.join(aux)
 def prepare_tail(filepath):
     if filepath is None: 
         return ''
     
     with open(os.path.abspath(args.tail),'r') as F:
-        Aux = [line.strip() for line in F]
+        aux = [line.strip() for line in F]
     
-    while len(Aux)>=1 and not Aux[0]:
-        _ = Aux.pop(0)
+    while len(aux)>=1 and not aux[0]:
+        _ = aux.pop(0)
     
-    while len(Aux)>=1 and not Aux[-1]:
-        _ = Aux.pop(-1)
+    while len(aux)>=1 and not aux[-1]:
+        _ = aux.pop(-1)
     
-    return '\n'.join(Aux)
+    return '\n'.join(aux)
 
 def info_from_gau_output(filepath,step=None): 
     with GaussianOutFile(filepath,[1,101,202]) as GOF:
