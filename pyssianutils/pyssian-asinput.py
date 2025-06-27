@@ -17,6 +17,9 @@ from pyssian.classutils import Geometry, DirectoryTree
 
 __version__ = '0.0.0'
 
+GAUSSIAN_INPUT_SUFFIX = '.com'
+GAUSSIAN_OUTPUT_SUFFIX = '.log'
+
 class NotFoundError(RuntimeError):
     pass
 
@@ -83,10 +86,14 @@ parser.add_argument('--software',choices=['g09','g16'],help="""Version of
                     'qs {gxx}.queue.q file.in' (Default: g09)""",default='g09')
 parser.add_argument('--version',version=f'script version {__version__}',
                     action='version')
+parser.add_argument('--suffix',default=None,nargs=2,help="""Input and output 
+                    suffix used for gaussian files""") 
 
 Queue = namedtuple('Queue','nprocesors memory'.split())
 QUEUES = {4:Queue(4,8),8:Queue(8,24),
-          12:Queue(12,24),20:Queue(20,48),
+          12:Queue(12,24),
+          16:Queue(16,32),
+          20:Queue(20,48),
           24:Queue(24,128),28:Queue(28,128),
           36:Queue(36,192),'q4':Queue('q4',4)}
 def submitline(File,software):
@@ -163,7 +170,7 @@ def prepare_filepaths_folder(args):
     --folder flag is enabled.
     """
     marker = select_marker(args)
-    dir = DirectoryTree(args.Files[0])
+    dir = DirectoryTree(args.Files[0],GAUSSIAN_INPUT_SUFFIX,GAUSSIAN_OUTPUT_SUFFIX)
     if args.OutDir:
         OutDir = Path(args.OutDir)
         dir.set_newroot(OutDir)
@@ -172,12 +179,12 @@ def prepare_filepaths_folder(args):
         dir.create_folders()
     # Find the gaussian output files
     geometries = list(dir.outfiles)
-    templates = [path.parent.joinpath(path.stem + '.in') for path in geometries]
+    templates = [path.with_suffix(GAUSSIAN_INPUT_SUFFIX) for path in geometries]
     newfiles = [dir.newpath(path) for path in geometries]
     if marker:
-        newname = f'{{0.stem}}_{marker}.in'.format
+        newname = f'{{0.stem}}_{marker}{GAUSSIAN_INPUT_SUFFIX}'.format
     else:
-        newname = '{0.stem}.in'.format
+        newname = f'{{0.stem}}{GAUSSIAN_INPUT_SUFFIX}'.format
     newfiles = [path.parent.joinpath(newname(path)) for path in newfiles]
     return templates, geometries, newfiles
 def prepare_filepaths_nofolder(args):
@@ -198,16 +205,16 @@ def prepare_filepaths_nofolder(args):
             geometries = [Path(line.strip()) for line in F if line.strip()]
     else:
         geometries = [Path(File) for File in args.Files]
-    templates = [path.parent.joinpath(path.stem + '.in') for path in geometries]
+    templates = [path.parent.joinpath(path.stem + GAUSSIAN_INPUT_SUFFIX) for path in geometries]
     if args.inplace:
         newfiles = [path for path in templates]
     else:
-        newfiles = [OutDir.joinpath(path.stem + '.in') for path in geometries]
+        newfiles = [OutDir.joinpath(path.stem + GAUSSIAN_INPUT_SUFFIX) for path in geometries]
     # Add the marker to the name of the file
     if marker:
-        newname = f'{{0.stem}}_{marker}.in'.format
+        newname = f'{{0.stem}}_{marker}{GAUSSIAN_INPUT_SUFFIX}'.format
     else:
-        newname = '{0.stem}.in'.format
+        newname = f'{{0.stem}}{GAUSSIAN_INPUT_SUFFIX}'.format
     newfiles = [path.parent.joinpath(newname(path)) for path in newfiles]
     return templates, geometries, newfiles
 
@@ -233,6 +240,21 @@ def select_marker(args):
                 the previously existing '.in' files. To continue please re-run
                 the command but add the flag '--overwrite' (or '-ow').""")
     return marker
+def select_suffix(args): 
+    """
+    Ensures proper formatting of the suffixes used for gaussian inputs and 
+    outputs and changes the values of the global variables GAUSSIAN_INPUT_SUFFIX,
+    GAUSSIAN_OUTPUT_SUFFIX accordingly
+    """
+    global GAUSSIAN_INPUT_SUFFIX
+    global GAUSSIAN_OUTPUT_SUFFIX
+    if args.suffix is None:
+        return
+    in_suffix, out_suffix = args.suffix
+    if in_suffix.startswith('.'): 
+        GAUSSIAN_INPUT_SUFFIX = in_suffix.rstrip()
+    if out_suffix.startswith('.'): 
+        GAUSSIAN_OUTPUT_SUFFIX = out_suffix.rstrip()
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -243,6 +265,9 @@ if __name__ == '__main__':
     else:
         with open(os.path.abspath(args.Tail),'r') as F:
             Tail = [line.strip() for line in F]
+    
+    # Ensure proper suffixes
+    select_suffix(args)
 
     templates,geometries,newfiles = prepare_filepaths(args)
     files4submit = []
