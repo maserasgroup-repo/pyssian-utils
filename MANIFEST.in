@@ -3,7 +3,11 @@ include setup.py
 include LICENSE
 
 # include the scripts
-include pyssianutils/pyssian-*.py
+include pyssianutils/pyssianutils
+
+# include the resources
+include pyssianutils/resources/defaults.ini
+include pyssianutils/resources/templates/empty.txt
 
 # Exclude Files
 global-exclude *.pyc

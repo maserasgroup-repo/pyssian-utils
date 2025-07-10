@@ -1,0 +1,21 @@
+#!/bin/usr/env python3
+
+from pyssianutils.utils import SUBPARSERS, MAINS, create_parser
+
+# These imports are required, to populate the SUBPARSERS and the MAINS variables
+import pyssianutils.initialize
+import pyssianutils.input
+
+
+if __name__ == '__main__': 
+
+    parser = create_parser()
+    args = parser.parse_args()
+
+    kwargs = dict(args._get_kwargs())
+    command = kwargs.pop('command')
+    
+    if kwargs:
+        MAINS[command](**kwargs)
+    else:
+        MAINS[command]()
