@@ -8,10 +8,46 @@ import pyssianutils.initialize
 import pyssianutils.input
 import pyssianutils.print
 import pyssianutils.toxyz
+import pyssianutils.track
+
+from argparse import ArgumentError
+
+def add_parser_as_subparser(subparsers,parser,name,**kwargs):
+    
+    # set prog from the existing prefix
+    if kwargs.get('prog') is None:
+        kwargs['prog'] = '%s %s' % (subparsers._prog_prefix, name)
+
+    aliases = kwargs.pop('aliases', ())
+
+    if name in subparsers._name_parser_map:
+        raise ArgumentError(subparsers, f'conflicting subparser: {name}')
+    for alias in aliases:
+        if alias in subparsers._name_parser_map:
+            raise ArgumentError(subparsers, f'conflicting subparser alias: {alias}')
+    
+    if 'help' in kwargs:
+        help = kwargs.pop('help')
+        choice_action = subparsers._ChoicesPseudoAction(name, aliases, help)
+        subparsers._choices_actions.append(choice_action)
+
+    # create the parser and add it to the map
+    # This is uneeded cause it already exists: 
+    #     parser = subparsers._parser_class(**kwargs)
+    subparsers._name_parser_map[name] = parser
+
+    # make parser available under aliases also
+    for alias in aliases:
+        subparsers._name_parser_map[alias] = parser
+
+    return parser
+
 
 
 if __name__ == '__main__': 
-    parser = create_parser()
+    parser, subparsers = create_parser()
+    add_parser_as_subparser(subparsers,pyssianutils.track.parser,'track',help='something')
+    
     args = parser.parse_args()
 
     if args.command is None: 
