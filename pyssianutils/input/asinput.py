@@ -15,9 +15,8 @@ from pathlib import Path
 from pyssian import GaussianOutFile, GaussianInFile
 from pyssian.classutils import Geometry, DirectoryTree
 
-from .utils import register_main
-
-__version__ = '0.1.0'
+from ..utils import register_main, register_subparser
+from ..initialize import check_initialization
 
 GAUSSIAN_INPUT_SUFFIX = '.com'
 GAUSSIAN_OUTPUT_SUFFIX = '.log'
@@ -33,70 +32,102 @@ QUEUES = {4:Queue(4,8),8:Queue(8,24),
 class NotFoundError(RuntimeError):
     pass
 
-def add_subparser_options(parser:argparse.ArgumentParser): 
+@register_subparser
+def subparser_asinput(parseaction:argparse._SubParsersAction): 
+    parser = parseaction.add_parser('asinput', help=__doc__)
+    parser.add_argument('files',help='Gaussian Output Files',nargs='+')
     group_input = parser.add_mutually_exclusive_group()
-    group_input.add_argument('-L','--ListFile',help="""When enabled instead of
-                        considering the files provided as the gaussian output files
-                        considers the file provided as a list of gaussian output
-                        files""",action='store_true',default=False)
-    group_input.add_argument('-r','--folder',help="""Takes the folder and its
-                        subfolder hierarchy and creates a new folder with the same
-                        subfolder structure. Finds all the .out, attempts to find
-                        their companion .in files and creates the new inputs in
-                        their equivalent locations in the new folder tree structure.
-                        """,action='store_true',default=False)
+    group_input.add_argument('-l','--listfile',
+                             dest='is_listfile',
+                             action='store_true',default=False,
+                             help="""When enabled instead of considering the 
+                             files provided as the gaussian output files 
+                             considers the file provided as a list of gaussian
+                             output files""")
+    group_input.add_argument('-r','--folder',
+                             dest='is_folder',
+                             action='store_true',default=False,
+                             help="""Takes the folder and its subfolder 
+                             hierarchy and creates a new folder with the same 
+                             subfolder structure. Finds all the .out, attempts 
+                             to find their companion .in files and creates the 
+                             new inputs in their equivalent locations in the new
+                             folder tree structure.""")
     group_marker = parser.add_mutually_exclusive_group()
-    group_marker.add_argument('-m','--marker',help="""Text added to the filename to
-                        differentiate the original .out file from the newly created
-                        one. """,default=None)
-    group_marker.add_argument('--no-marker',help="""Files will be created with the
-                        same file name as the provided files but with the '.in'
-                        extension""", action='store_true',default=False,
-                        dest='no_marker')
+    group_marker.add_argument('-m','--marker',
+                            default='new',
+                            help="""Text added to the filename to differentiate 
+                            the original file from the newly created one.
+                            For example, myfile.com may become myfile_marker.com""")
+    group_marker.add_argument('--no-marker',
+                            dest='no_marker',
+                            action='store_true',default=False,
+                            help="The file stems are kept")
     group_output = parser.add_mutually_exclusive_group()
-    group_output.add_argument('-O','--OutDir',help="""Where to create the new files,
-                        defaults to the current directory""",default='')
-    group_output.add_argument('--inplace',help="""Creates the new files in the same
-                        locations as the files provided by the user""",
-                        action='store_true',default=False)
-    parser.add_argument('-ow','--overwrite',help="""When creating the new files if a
-                        file with the same name exists overwrites its contents. (The
-                        default behaviour is to raise an error to notify the user
-                        before overwriting).""",action='store_true',default=False)
-    parser.add_argument('-T','--Tail',help="""Tail File that contains the extra
-                        options, such as pseudopotentials, basis sets """,
-                        default=None)
-    parser.add_argument('--as-SP',help="""Removes the freq, opt and scan keyword if
-                        those existed in the previously existing inputs and changes
-                        the default marker to 'SP' """,action='store_true',
-                        default=False,dest='as_SP')
-    parser.add_argument('--method',help="""New method/functional to use. Originally
+    group_output.add_argument('-o','--outdir',
+                              default=None,
+                              help="""Where to create the new files, defaults 
+                              to the current directory""")
+    group_output.add_argument('--inplace',
+                              dest='is_inplace',
+                              action='store_true',default=False,
+                              help="""Creates the new files in the same 
+                              locations as the files provided by the user""")
+    parser.add_argument('-ow','--overwrite',
+                        dest='do_overwrite',
+                        action='store_true',default=False,
+                        help="""When creating the new files if a file with the 
+                        same name exists overwrites its contents. (The default 
+                        behaviour is to raise an error to notify the user before
+                        overwriting).""")
+    parser.add_argument('-t','--tail',
+                        default=None,
+                        help="""Tail File that contains the extra options, such
+                        as pseudopotentials, basis sets""")
+    parser.add_argument('--as-SP',
+                        dest='as_SP',
+                        action='store_true', default=False,
+                        help="""Removes the freq, opt and scan keyword if
+                        those existed in the previously existing inputs and 
+                        changes the default marker to 'SP' """)
+    parser.add_argument('--method',
+                        default=None,
+                        help="""New method/functional to use. Originally
                         this option is thought to run DFT benchmarks it is not
-                        guaranteed a working input for CCSDT or ONIOM.""",
-                        default=None)
-    parser.add_argument('--solvent',help="""New solvent to use in the calculation
-                        written as it would be written in Gaussian. ('vacuum' will
-                        remove the scrf keywords if they were in the previous input
-                        files)""",default=None)
-    parser.add_argument('--smodel',default=None,choices=['smd','pcm',None], help="""
-                        Solvent model. The scrf keyword will only be included if the
-                        --solvent flag is enabled. (Defaults to None which implies
-                        that no change to the original inputs smodel will be done)
-                        """)
-    parser.add_argument('--add-text', default=None, help="""Attempts to add
-                        literally the text provided to the command line.
-                        Recommended: "keyword=(value1,keyword2=value2)" """,
-                        dest='add_text')
-    parser.add_argument('--no-submit',default=False,action='store_true',
-                        help="""Do not create a SubmitScript.sh File in the current
-                        directory""",dest='no_submit')
-    parser.add_argument('--software',choices=['g09','g16'],help="""Version of
-                        gaussian to which the calculations will be sent.
-                        'qs {gxx}.queue.q file.in' (Default: g09)""",default='g09')
-    parser.add_argument('--version',version=f'script version {__version__}',
-                        action='version')
-    parser.add_argument('--suffix',default=None,nargs=2,help="""Input and output 
-                        suffix used for gaussian files""") 
+                        guaranteed a working input for CCSDT or ONIOM.""")
+    parser.add_argument('--solvent',
+                        default=None,
+                        help="""New solvent to use in the calculation written as
+                        it would be written in Gaussian. ('vacuum'/'gas' will
+                        remove the scrf keywords if they were in the previous
+                        input files)""")
+    parser.add_argument('--smodel',
+                        dest='solvation_model',
+                        default=None,choices=['smd','pcm',None], 
+                        help="""Solvent model. The scrf keyword will only be 
+                        included if the --solvent flag is enabled. 
+                        (Defaults to None which implies that no change to the 
+                        original inputs smodel will be done) """)
+    parser.add_argument('--add-text',
+                        dest='add_text',
+                        default=None, 
+                        help="""Attempts to add literally the text provided to
+                        the command line. Recommended: 
+                        "keyword=(value1,keyword2=value2)" """)
+    parser.add_argument('--suffix',
+                        default=(None,None),nargs=2,
+                        help="""Input and output suffix used for gaussian files""") 
+    parser.add_argument('--no-submit',
+                        dest='do_submit',
+                        default=True,action='store_false',
+                        help="""Do not create a submitscript.sh file in the 
+                        current directory""")
+    parser.add_argument('--software',
+                        choices=['g09','g16'],default='g09',
+                        help="""Version of gaussian to which the calculations
+                        will be sent. Only affects the submission script if 
+                        generated. 
+                        'qs {gxx}.queue.q file.in' (Default: g09)""")
 
 def submitline(filepath:Path,software:str) -> str:
     """
@@ -143,7 +174,7 @@ def submitline(filepath:Path,software:str) -> str:
 
 def prepare_filepaths(
                       filepaths:list[str|Path],
-                      odir:str|Path|None,
+                      outdir:str|Path|None,
                       in_suffix:str,
                       out_suffix:str,
                       is_folder:bool,
@@ -153,7 +184,7 @@ def prepare_filepaths(
                       no_marker:bool=False,
                       is_inplace:bool=False,
                       do_overwrite:bool=False,
-                      ):
+                      ) -> tuple[list[Path]]:
     """
     This function encapsulates all the logic related to the generation of the
     final paths to the files, directory and subdirectory creation as well as
@@ -183,14 +214,16 @@ def prepare_filepaths(
     # Prepare folder structure
     if is_folder:
         folder = filepaths[0]
+        if not is_inplace:
+            outdir = Path.cwd()
         templates,geometries,newfiles = prepare_filepaths_folder(folder,
-                                                                 odir,
+                                                                 outdir,
                                                                  in_suffix,
                                                                  out_suffix,
                                                                  )
     else:
         templates,geometries,newfiles = prepare_filepaths_nofolder(filepaths,
-                                                                   odir,
+                                                                   outdir,
                                                                    in_suffix,
                                                                    is_inplace,
                                                                    is_listfile,
@@ -199,7 +232,7 @@ def prepare_filepaths(
     marker = select_marker(marker,
                            as_SP,
                            no_marker)
-    
+
     if marker: 
         newfiles = [p.with_stem(f'{p.stem}_{marker}') for p in newfiles]
 
@@ -207,7 +240,7 @@ def prepare_filepaths(
 def prepare_filepaths_folder(folder:Path|str,
                              odir:str|Path|None,
                              in_suffix:str,
-                             out_suffix:str):
+                             out_suffix:str) -> tuple[list[Path]]:
     """
     This function encapsulates the logic of the path generation when the
     --folder flag is enabled.
@@ -223,7 +256,7 @@ def prepare_filepaths_folder(folder:Path|str,
     # Find the gaussian output files
     geometries = list(dir.outfiles)
     templates = [path.with_suffix(in_suffix) for path in geometries]
-    newfiles = [dir.newpath(path) for path in geometries]
+    newfiles = [dir.newpath(path).with_suffix(in_suffix) for path in geometries]
 
     return templates, geometries, newfiles
 def prepare_filepaths_nofolder(files:list[str|Path],
@@ -254,7 +287,7 @@ def prepare_filepaths_nofolder(files:list[str|Path],
     if is_inplace:
         newfiles = [path for path in templates]
     else:
-        newfiles = [odir/g.with_suffix(in_suffix).name for g in geometries]
+        newfiles = [odir/(g.with_suffix(in_suffix).name) for g in geometries]
 
     return templates, geometries, newfiles
 
@@ -336,10 +369,9 @@ def create_hpc_submission_script(files:list[Path],
 
 @register_main
 def main_asinput(
-                 filepaths:list[str|Path],
-                 odir:str|Path|None=None,
-                 in_suffix:str|None=None,
-                 out_suffix:str|None=None,
+                 files:list[str|Path],
+                 outdir:str|Path|None=None,
+                 suffix:tuple[str|None]=None,
                  method:str|None=None,
                  solvent:str|None=None,
                  solvation_model:str|None=None,
@@ -356,14 +388,16 @@ def main_asinput(
                  software:str|None='g16',
                 ):
     
+    check_initialization()
+
     # Prepare Tail
     tail = prepare_tail(tail)
     
     # Ensure proper suffixes
-    in_suffix,out_suffix = select_suffix(in_suffix, out_suffix)
+    in_suffix,out_suffix = select_suffix(*suffix)
 
-    templates,geometries,newfiles = prepare_filepaths(filepaths,
-                                                      odir,
+    templates,geometries,newfiles = prepare_filepaths(files,
+                                                      outdir,
                                                       in_suffix,
                                                       out_suffix,
                                                       is_folder,

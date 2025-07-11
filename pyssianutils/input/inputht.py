@@ -12,21 +12,34 @@ from functools import partial
 
 from pyssian import GaussianOutFile, GaussianInFile
 from pyssian.classutils import Geometry
-from .utils import register_main
-
-__version__ = '0.1.0'
+from ..initialize import check_initialization
+from ..utils import register_main,register_subparser
 
 GAUSSIAN_INPUT_SUFFIX = '.com'
 GAUSSIAN_OUTPUT_SUFFIX = '.log'
 
-def add_subparser_options(parser:argparse.ArgumentParser): 
+@register_subparser
+def subparser_inputht(parseaction:argparse._SubParsersAction): 
+    parser = parseaction.add_parser('inputht', help=__doc__)
     parser.add_argument('files',help='Gaussian Input/Output Files',nargs='+')
-    parser.add_argument('-L','--listfile',
-                        action='store_true',
+    parser.add_argument('-l','--listfile',
+                        action='store_true',default=False,
+                        dest='is_listfile',
                         help="""When enabled instead of considering the files 
                         provided as the gaussian output files considers the file 
-                        provided as a list of gaussian output files""")
-    parser.add_argument('-O','--outdir',
+                        provided as a list of gaussian output files""",)
+    group_marker = parser.add_mutually_exclusive_group()
+    group_marker.add_argument('-m','--marker',
+                            default='new',
+                            help="""Text added to the filename to differentiate 
+                            the original file from the newly created one.
+                            For example, myfile.com may become myfile_marker.com""")
+    group_marker.add_argument('--no-marker',
+                            action='store_true',
+                            default=False,
+                            dest='no_marker',
+                            help="The file stems are kept")
+    parser.add_argument('-o','--outdir',
                         default='',
                         help=""" Where to create the new files, defaults to the 
                         current directory""")
@@ -141,7 +154,7 @@ def extract_geom_spin_and_charge(filepath:str|Path,
     raise NotImplementedError(f'files with suffix "{suffix}" cannot be interpreted')
 
 @register_main
-def main_inputHT(files:list[str|Path],
+def main_inputht(files:list[str|Path],
                  listfile:bool,
                  marker:str,
                  outdir:Path|str,
@@ -154,6 +167,8 @@ def main_inputHT(files:list[str|Path],
                  no_marker:bool=False,
                  ):
     
+    check_initialization()
+
     inputfiles = select_input_files(files,listfile)
 
     if no_marker:

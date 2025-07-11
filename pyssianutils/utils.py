@@ -1,11 +1,14 @@
 """
-todo
+This module provides a set of functions with general utilities. as 
+well as the basic variables for registering the subparsers and main functions
 """
-import os
+
 import argparse
 from pathlib import Path
 from ._version import __version__
+from pyssian.gaussianclasses import GaussianOutFile
 
+# Core functions for pyssianutils command line inner workings
 SUBPARSERS = dict()
 MAINS = dict() 
 
@@ -35,68 +38,118 @@ def create_parser()->argparse.ArgumentParser:
 
     return parser
 
+# Other functions utility variables
+ALLOWEDMETHODS = ['oniom','mp2','mp2scs','mp4','ccsdt','default']
 
-#parser.add_argument('Files',help='Gaussian Output Files',nargs='+')
-#group_input = parser.add_mutually_exclusive_group()
-#group_input.add_argument('-L','--ListFile',help="""When enabled instead of
-#                    considering the files provided as the gaussian output files
-#                    considers the file provided as a list of gaussian output
-#                    files""",action='store_true',default=False)
-#group_input.add_argument('-r','--folder',help="""Takes the folder and its
-#                    subfolder hierarchy and creates a new folder with the same
-#                    subfolder structure. Finds all the .out, attempts to find
-#                    their companion .in files and creates the new inputs in
-#                    their equivalent locations in the new folder tree structure.
-#                    """,action='store_true',default=False)
-#group_marker = parser.add_mutually_exclusive_group()
-#group_marker.add_argument('-m','--marker',help="""Text added to the filename to
-#                    differentiate the original .out file from the newly created
-#                    one. """,default=None)
-#group_marker.add_argument('--no-marker',help="""Files will be created with the
-#                    same file name as the provided files but with the '.in'
-#                    extension""", action='store_true',default=False,
-#                    dest='no_marker')
-#group_output = parser.add_mutually_exclusive_group()
-#group_output.add_argument('-O','--OutDir',help="""Where to create the new files,
-#                    defaults to the current directory""",default='')
-#group_output.add_argument('--inplace',help="""Creates the new files in the same
-#                    locations as the files provided by the user""",
-#                    action='store_true',default=False)
-#parser.add_argument('-ow','--overwrite',help="""When creating the new files if a
-#                    file with the same name exists overwrites its contents. (The
-#                    default behaviour is to raise an error to notify the user
-#                    before overwriting).""",action='store_true',default=False)
-#parser.add_argument('-T','--Tail',help="""Tail File that contains the extra
-#                    options, such as pseudopotentials, basis sets """,
-#                    default=None)
-#parser.add_argument('--as-SP',help="""Removes the freq, opt and scan keyword if
-#                    those existed in the previously existing inputs and changes
-#                    the default marker to 'SP' """,action='store_true',
-#                    default=False,dest='as_SP')
-#parser.add_argument('--method',help="""New method/functional to use. Originally
-#                    this option is thought to run DFT benchmarks it is not
-#                    guaranteed a working input for CCSDT or ONIOM.""",
-#                    default=None)
-#parser.add_argument('--solvent',help="""New solvent to use in the calculation
-#                    written as it would be written in Gaussian. ('vacuum' will
-#                    remove the scrf keywords if they were in the previous input
-#                    files)""",default=None)
-#parser.add_argument('--smodel',default=None,choices=['smd','pcm',None], help="""
-#                    Solvent model. The scrf keyword will only be included if the
-#                    --solvent flag is enabled. (Defaults to None which implies
-#                    that no change to the original inputs smodel will be done)
-#                    """)
-#parser.add_argument('--add-text', default=None, help="""Attempts to add
-#                    literally the text provided to the command line.
-#                    Recommended: "keyword=(value1,keyword2=value2)" """,
-#                    dest='add_text')
-#parser.add_argument('--no-submit',default=False,action='store_true',
-#                    help="""Do not create a SubmitScript.sh File in the current
-#                    directory""",dest='no_submit')
-#parser.add_argument('--software',choices=['g09','g16'],help="""Version of
-#                    gaussian to which the calculations will be sent.
-#                    'qs {gxx}.queue.q file.in' (Default: g09)""",default='g09')
-#parser.add_argument('--version',version=f'script version {__version__}',
-#                    action='version')
-#parser.add_argument('--suffix',default=None,nargs=2,help="""Input and output 
-#                    suffix used for gaussian files""") 
+# General Utils
+def write_2_file(filepath:Path):
+    """
+    Creates a wrapper for appending text to a certain File. Assumes that each
+    call is equivalent to writing a single line.
+    """
+    def Writer(txt):
+        with open(filepath,'a') as F:
+            F.write(txt)
+            F.write('\n')
+    return Writer
+
+# GaussianOutFile utils
+def thermochemistry(GOF:GaussianOutFile) -> tuple[float|None]:
+    """
+    Returns the Zero Point Energy, Enthalpy and Free Energy
+    from a frequency calculation.
+
+    Parameters
+    ----------
+    GOF : GaussianOutFile
+
+    Returns
+    -------
+    tuple
+        (Z, H, G)
+    """
+    Link = GOF[-1].get_links(716)[-1]
+    Z = Link.zeropoint[-1]
+    H = Link.enthalpy[-1]
+    G = Link.gibbs[-1]
+    return Z, H, G
+def potential_energy(GOF:GaussianOutFile,method:str='default')-> float|None:
+    """
+    Returns the last potential energy of a GaussianOutFile of a certain
+    method. The default is the energy of the SCF cycle ('SCF Done:')
+
+    Parameters
+    ----------
+    GOF : GaussianOutFile
+    Method : string
+        For DFT and HF the default behavior is correct. For Post-HF methods
+        it needs to be specified. 
+        Currently: ['oniom','mp2','mp2scs','MP4','ccsdt']
+
+    Returns
+    -------
+    float
+        Energy
+    """
+    
+    assert method in ALLOWEDMETHODS
+
+    if method == 'mp2': # Search for MP2 energy
+        energy = GOF.get_links(804)[-1].MP2
+    elif method == 'mp2scs':
+        HF = GOF.get_links(502)[-1].energy
+        SCS_corr = GOF.get_links(804)[-1].get_SCScorr()
+        energy = HF + SCS_corr
+    elif method == 'ccsdt': # Search for CCSD(T) energy or default to MP4
+        Aux = GOF.get_links(913)[-1]
+        energy = Aux.CCSDT
+    elif method == 'mp4':
+        Aux = GOF.get_links(913)[-1]
+        energy = Aux.MP4
+    elif method == 'oniom': 
+        Aux = GOF.get_links(120)[-1]
+        energy = Aux.energy
+    else: # Otherwise go to the "Done(...)" Energy
+        energy = None
+        links = GOF.get_links(502,508)
+        if links:
+            energy = links[-1].energy
+        if links and energy is None: 
+            energy = links[-2].energy
+    return energy
+
+# Console Utils
+def print_convergence(GOF,JobId,Last=False):
+    """
+    Displays the Convergence parameters for a certain InternalJob of a
+    GaussianOutFile.
+
+    Parameters
+    ----------
+    GOF : GaussianOutFile
+        Gaussian File whose convergence parameters are going to be displayed.
+    JobId : int
+        InternalJob number in the Gaussian Output File.
+    Last : bool
+        If enabled only the last set of parameters is displayed
+        (the default is False).
+    """
+    if Last:
+        GOF[JobId].get_links(103)[-1].print_convergence()
+    else:
+        for i,L in enumerate(GOF[JobId].get_links(103)):
+            print(i)
+            L.print_convergence()
+def print_thermo(GOF):
+    """
+    Prints in the console the thermochemistry of a GaussianOutFile.
+
+    Parameters
+    ----------
+    GOF : GaussianOutFile
+        Gaussian File whose thermochemistry is going to be displayed.
+    """
+    Z,H,G = thermochemistry(GOF)
+    U = potential_energy(GOF)
+    print(f"{'U': ^14}\t{'Z': ^14}\t{'H': ^14}\t{'G': ^14}")
+    print(f"{U: 03.9f}\t{Z: 03.9f}\t{H: 03.9f}\t{G: 03.9f}")

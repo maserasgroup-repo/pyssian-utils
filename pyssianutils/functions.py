@@ -2,116 +2,8 @@
 This module provides a set of functions with general utilities. If
 matplotlib.pyplot is available the Plot Functions become available
 """
-
-# General Utils
-def write_2_file(File):
-    """
-    Creates a wrapper for appending text to a certain File. Assumes that each
-    call is equivalent to writing a single line.
-    """
-    def Writer(txt):
-        with open(File,'a') as OFile:
-            OFile.write(txt)
-            OFile.write('\n')
-    return Writer
-
-# GaussianOutFile utils
-def thermochemistry(GOF):
-    """
-    Returns the Zero Point Energy, Enthalpy and Free Energy
-    from a frequency calculation.
-
-    Parameters
-    ----------
-    GOF : GaussianOutFile
-
-    Returns
-    -------
-    tuple
-        (Z, H, G)
-    """
-    Link = GOF[-1].get_links(716)[-1]
-    Z = Link.zeropoint[-1]
-    H = Link.enthalpy[-1]
-    G = Link.gibbs[-1]
-    return Z, H, G
-def potential_energy(GOF,method='default'):
-    """
-    Returns the last potential energy of a GaussianOutFile of a certain
-    method. The default is the energy of the SCF cycle ('SCF Done:')
-
-    Parameters
-    ----------
-    GOF : GaussianOutFile
-    Method : string
-        For DFT and HF the default behavior is correct. For Post-HF methods
-        it needs to be specified. 
-        Currently: ['oniom','mp2','mp2scs','MP4','ccsdt']
-
-    Returns
-    -------
-    float
-        Energy
-    """
-    if method == 'mp2': # Search for MP2 energy
-        energy = GOF.get_links(804)[-1].MP2
-    elif method == 'mp2scs':
-        HF = GOF.get_links(502)[-1].energy
-        SCS_corr = GOF.get_links(804)[-1].get_SCScorr()
-        energy = HF + SCS_corr
-    elif method == 'ccsdt': # Search for CCSD(T) energy or default to MP4
-        Aux = GOF.get_links(913)[-1]
-        energy = Aux.CCSDT
-    elif method == 'mp4':
-        Aux = GOF.get_links(913)[-1]
-        energy = Aux.MP4
-    elif method == 'oniom': 
-        Aux = GOF.get_links(120)[-1]
-        energy = Aux.energy
-    else: # Otherwise go to the "Done(...)" Energy
-        energy = None
-        links = GOF.get_links(502,508)
-        if links:
-            energy = links[-1].energy
-        if links and energy is None: 
-            energy = links[-2].energy
-    return energy
-
-# Console Utils
-def print_convergence(GOF,JobId,Last=False):
-    """
-    Displays the Convergence parameters for a certain InternalJob of a
-    GaussianOutFile.
-
-    Parameters
-    ----------
-    GOF : GaussianOutFile
-        Gaussian File whose convergence parameters are going to be displayed.
-    JobId : int
-        InternalJob number in the Gaussian Output File.
-    Last : bool
-        If enabled only the last set of parameters is displayed
-        (the default is False).
-    """
-    if Last:
-        GOF[JobId].get_links(103)[-1].print_convergence()
-    else:
-        for i,L in enumerate(GOF[JobId].get_links(103)):
-            print(i)
-            L.print_convergence()
-def print_thermo(GOF):
-    """
-    Prints in the console the thermochemistry of a GaussianOutFile.
-
-    Parameters
-    ----------
-    GOF : GaussianOutFile
-        Gaussian File whose thermochemistry is going to be displayed.
-    """
-    Z,H,G = thermochemistry(GOF)
-    U = potential_energy(GOF)
-    print(f"{'U': ^14}\t{'Z': ^14}\t{'H': ^14}\t{'G': ^14}")
-    print(f"{U: 03.9f}\t{Z: 03.9f}\t{H: 03.9f}\t{G: 03.9f}")
+from typing import Tuple, Callable
+from pyssian.gaussianclasses import GaussianOutFile
 
 # If the matplotlib module is available, create these functions
 try:
@@ -120,7 +12,7 @@ except ImportError:
     pass
 else:
     # Plotting Utils
-    def PlotConvergence(GOF,JobId):
+    def PlotConvergence(GOF:GaussianOutFile,JobId:int):
         """
         The plot version of print_convergence.
 
@@ -202,7 +94,7 @@ else:
                 ax.set_ylabel(label)
                 ax.plot(x,y)
         return f, thresholds
-    def PlotThresholds(fig,thresholds=None):
+    def PlotThresholds(fig:pyplot.Figure,thresholds:None|tuple[float]=None):
         """
         Convenience function to plot horizontal lines for the figure produced
         by PlotConvergence.
@@ -222,7 +114,9 @@ else:
             xlim = i.get_xlim()
             i.plot(xlim,(j,j),'r')
             i.set_xlim(xlim)
-    def PlotInternalEnergy(GOF,UnitConverter=None):
+    def PlotInternalEnergy(GOF:GaussianOutFile,
+                           UnitConverter:None|Tuple[str,Callable[[float],float]]=None
+                           ) -> pyplot.Figure:
         """
         Function that plots the potential energy during a Gaussian calculation.
 

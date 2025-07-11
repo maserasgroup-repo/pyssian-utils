@@ -37,6 +37,11 @@ def unpack_appdir(ifile:Path,location:Path):
     
     tar.close()
 
+def check_initialization():
+    appdir = get_appdir()
+    if not appdir.exists(): 
+        raise RuntimeError(f"{appdir} does not exist. Please ensure to run pyssianutils 'init'")
+
 # Main APIs 
 
 @register_subparser
