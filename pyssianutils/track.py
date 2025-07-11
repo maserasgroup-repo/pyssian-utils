@@ -9,12 +9,11 @@ import os
 import re
 from pathlib import Path
 
-import argparse
 
 from pyssian import GaussianOutFile
-from pyssianutils.functions import write_2_file
+from .utils import write_2_file
 
-__version__ = '0.0.0'
+import argparse
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('File',help='Gaussian Output File',)

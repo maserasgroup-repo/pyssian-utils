@@ -36,7 +36,7 @@ def create_parser()->argparse.ArgumentParser:
     for _,add_subparser in SUBPARSERS.items(): 
         add_subparser(subparsers)
 
-    return parser
+    return parser, subparsers
 
 # Other functions utility variables
 ALLOWEDMETHODS = ['oniom','mp2','mp2scs','mp4','ccsdt','default']
