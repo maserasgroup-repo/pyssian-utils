@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pyssian import GaussianOutFile
 from pyssian.chemistryutils import is_method
-from pyssianutils.functions import potential_energy, write_2_file, ALLOWEDMETHODS
+from ..utils import potential_energy, write_2_file, ALLOWEDMETHODS
 
 # typing imports
 import argparse
