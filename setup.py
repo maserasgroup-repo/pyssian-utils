@@ -8,7 +8,7 @@ with open("README.rst", "r") as fh:
 setuptools.setup(
   name = 'pyssianutils',
   version = __version__,
-  packages = ['pyssianutils',],
+  packages = setuptools.find_packages(),
   description = """ Command line utils developed with pyssian for everyday tasks
                     in computational chemistry """,
   author = 'Raúl Pérez-Soto',
