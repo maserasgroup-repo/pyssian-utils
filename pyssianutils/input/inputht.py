@@ -155,7 +155,7 @@ def extract_geom_spin_and_charge(filepath:str|Path,
 
 @register_main
 def main_inputht(files:list[str|Path],
-                 listfile:bool,
+                 is_listfile:bool,
                  marker:str,
                  outdir:Path|str,
                  header:Path|str,
@@ -169,7 +169,7 @@ def main_inputht(files:list[str|Path],
     
     check_initialization()
 
-    inputfiles = select_input_files(files,listfile)
+    inputfiles = select_input_files(files,is_listfile)
 
     if no_marker:
         marker = ''
