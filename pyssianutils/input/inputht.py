@@ -4,71 +4,17 @@ or from the geometry of gaussian input files or a .xyz file using a Header
 and/or Tail Files which contain everything but the geometry and spin/charge (
 which must be provided for .xyz files)
 """
-
-import os
 from pathlib import Path
 import argparse
-from functools import partial
 
 from pyssian import GaussianOutFile, GaussianInFile
 from pyssian.classutils import Geometry
 from ..initialize import check_initialization
-from ..utils import register_main,register_subparser
 
 GAUSSIAN_INPUT_SUFFIX = '.com'
 GAUSSIAN_OUTPUT_SUFFIX = '.log'
 
-@register_subparser
-def subparser_inputht(parseaction:argparse._SubParsersAction): 
-    parser = parseaction.add_parser('inputht', help=__doc__)
-    parser.add_argument('files',help='Gaussian Input/Output Files',nargs='+')
-    parser.add_argument('-l','--listfile',
-                        action='store_true',default=False,
-                        dest='is_listfile',
-                        help="""When enabled instead of considering the files 
-                        provided as the gaussian output files considers the file 
-                        provided as a list of gaussian output files""",)
-    group_marker = parser.add_mutually_exclusive_group()
-    group_marker.add_argument('-m','--marker',
-                            default='new',
-                            help="""Text added to the filename to differentiate 
-                            the original file from the newly created one.
-                            For example, myfile.com may become myfile_marker.com""")
-    group_marker.add_argument('--no-marker',
-                            action='store_true',
-                            default=False,
-                            dest='no_marker',
-                            help="The file stems are kept")
-    parser.add_argument('-o','--outdir',
-                        default='',
-                        help=""" Where to create the new files, defaults to the 
-                        current directory""")
-    parser.add_argument('--step',
-                        default=None,
-                        type=int,
-                        help=""" Will attempt to access the ith optimization step of
-                        a gaussian output file to extract its geometry on all files 
-                        provided. 'initial geometry'='1'""")
-    parser.add_argument('-H','--header',
-                        default=None,
-                        help="""Header File that contains the queue, memory as well 
-                        as the gaussian calculation instructions. The output will 
-                        start at the charge-spin line """)
-    parser.add_argument('-T','--tail',
-                        default=None,
-                        help="""Tail File that contains the extra options, such as 
-                        pseudopotentials, basis sets """)
-    parser.add_argument('--charge',
-                        default=0,
-                        type=int,
-                        help="""Net charge of the whole system""")
-    parser.add_argument('--spin',
-                        default=1,
-                        type=int,
-                        help="""spin of the system""")
-    parser.add_argument('--suffix',default=None,nargs=2,help="""Input and output 
-                        suffix used for gaussian files""") 
-
+# Utility Functions
 def select_input_files(files:list[Path|str],is_listfile:bool=False) -> list[Path]: 
     if is_listfile:
         with open(files[0],'r') as F:
@@ -153,19 +99,68 @@ def extract_geom_spin_and_charge(filepath:str|Path,
         return Geometry.from_xyz(filepath), charge, spin
     raise NotImplementedError(f'files with suffix "{suffix}" cannot be interpreted')
 
-@register_main
-def main_inputht(files:list[str|Path],
-                 is_listfile:bool,
-                 marker:str,
-                 outdir:Path|str,
-                 header:Path|str,
-                 tail:Path|str,
-                 suffix:str,
-                 charge:int=0,
-                 spin:int=1,
-                 step:None|int=None,
-                 no_marker:bool=False,
-                 ):
+# Parser and Main Definition
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('files',help='Gaussian Input/Output Files',nargs='+')
+parser.add_argument('-l','--listfile',
+                    action='store_true',default=False,
+                    dest='is_listfile',
+                    help="""When enabled instead of considering the files 
+                    provided as the gaussian output files considers the file 
+                    provided as a list of gaussian output files""",)
+group_marker = parser.add_mutually_exclusive_group()
+group_marker.add_argument('-m','--marker',
+                        default='new',
+                        help="""Text added to the filename to differentiate 
+                        the original file from the newly created one.
+                        For example, myfile.com may become myfile_marker.com""")
+group_marker.add_argument('--no-marker',
+                        action='store_true',
+                        default=False,
+                        dest='no_marker',
+                        help="The file stems are kept")
+parser.add_argument('-o','--outdir',
+                    default='',
+                    help=""" Where to create the new files, defaults to the 
+                    current directory""")
+parser.add_argument('--step',
+                    default=None,
+                    type=int,
+                    help=""" Will attempt to access the ith optimization step of
+                    a gaussian output file to extract its geometry on all files 
+                    provided. 'initial geometry'='1'""")
+parser.add_argument('-H','--header',
+                    default=None,
+                    help="""Header File that contains the queue, memory as well 
+                    as the gaussian calculation instructions. The output will 
+                    start at the charge-spin line """)
+parser.add_argument('-T','--tail',
+                    default=None,
+                    help="""Tail File that contains the extra options, such as 
+                    pseudopotentials, basis sets """)
+parser.add_argument('--charge',
+                    default=0,
+                    type=int,
+                    help="""Net charge of the whole system""")
+parser.add_argument('--spin',
+                    default=1,
+                    type=int,
+                    help="""spin of the system""")
+parser.add_argument('--suffix',default=None,nargs=2,help="""Input and output 
+                    suffix used for gaussian files""")
+
+def main(files:list[str|Path],
+         is_listfile:bool,
+         marker:str,
+         outdir:Path|str,
+         header:Path|str,
+         tail:Path|str,
+         suffix:str,
+         charge:int=0,
+         spin:int=1,
+         step:None|int=None,
+         no_marker:bool=False,
+         ):
     
     check_initialization()
 

@@ -15,7 +15,8 @@ if __name__ == '__main__':
     parser, subparsers = create_parser()
 
     modules = [
-        #(pyssianutils.input, ''),
+        (pyssianutils.input.inputht, 'inputht'),
+        (pyssianutils.input.asinput, 'asinput'),
         (pyssianutils.print, 'print'),
         (pyssianutils.toxyz, 'toxyz'),
         (pyssianutils.track, 'track'),
