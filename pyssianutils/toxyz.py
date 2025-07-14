@@ -14,36 +14,13 @@ from functools import partial
 from pyssian import GaussianOutFile, GaussianInFile
 from pyssian.classutils import Geometry
 
-from .utils import register_main, register_subparser
-
 # typing imports
 import argparse
 
 GAUSSIAN_INPUT_SUFFIX = '.com'
 GAUSSIAN_OUTPUT_SUFFIX = '.log'
 
-@register_subparser
-def subparser_toxyz(parseraction:argparse._SubParsersAction):
-    parser = parseraction.add_parser('toxyz', help=__doc__)
-    
-    parser.add_argument('files',help='Gaussian Input/Output Files',nargs='+')
-    parser.add_argument('-l','--listfile',
-                        dest='is_listfile',
-                        action='store_true',default=False,
-                        help="""When enabled instead of considering the files 
-                        provided as the gaussian output files considers the file 
-                        provided as a list of gaussian output files""")
-    parser.add_argument('-o','--outfile',
-                        type=Path,
-                        default=Path('all_geometries.xyz'),
-                        help="""Name of the xyz file with all the provided 
-                        geometries sorted by filename""")
-    parser.add_argument('--step',
-                        default=None, type=int,
-                        help=""" Will attempt to access the ith optimization step of
-                        a gaussian output file to extract its geometry on all files 
-                        provided. 'initial geometry'='1'""")
-
+# Utility Functions
 def select_input_files(files,is_listfile=False): 
     if is_listfile:
         with open(files[0],'r') as F:
@@ -64,7 +41,6 @@ def select_suffix(suffix):
     if in_suffix.startswith('.'): 
         return in_suffix.rstrip()
     return f'.{in_suffix}'
-
 def info_from_gau_output(filepath,step=None): 
     with GaussianOutFile(filepath,[1,101,202]) as GOF:
         GOF.update()
@@ -79,7 +55,6 @@ def info_from_gau_input(filepath):
         GIF.read()
     geom = Geometry.from_Input(GIF)
     return geom
-
 def extract_geom(filepath,step=None): 
     suffix = Path(filepath).suffix
     if suffix in ['.in','.com','.gjf']: 
@@ -92,11 +67,31 @@ def extract_geom(filepath,step=None):
         return Geometry.from_xyz(filepath)
     raise NotImplementedError(f'files with suffix "{suffix}" cannot be interpreted')
 
-def main_toxyz(files:list[str|Path],
-               outfile:Path|str,
-               is_listfile:bool=False,
-               step:int|None=None
-               ):
+# Parser and main definition
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('files',help='Gaussian Input/Output Files',nargs='+')
+parser.add_argument('-l','--listfile',
+                    dest='is_listfile',
+                    action='store_true',default=False,
+                    help="""When enabled instead of considering the files 
+                    provided as the gaussian output files considers the file 
+                    provided as a list of gaussian output files""")
+parser.add_argument('-o','--outfile',
+                    type=Path,
+                    default=Path('all_geometries.xyz'),
+                    help="""Name of the xyz file with all the provided 
+                    geometries sorted by filename""")
+parser.add_argument('--step',
+                    default=None, type=int,
+                    help=""" Will attempt to access the ith optimization step of
+                    a gaussian output file to extract its geometry on all files 
+                    provided. 'initial geometry'='1'""")
+
+def main(files:list[str|Path],
+         outfile:Path|str,
+         is_listfile:bool=False,
+         step:int|None=None
+         ):
     
     inputfiles = select_input_files(files,is_listfile)
 

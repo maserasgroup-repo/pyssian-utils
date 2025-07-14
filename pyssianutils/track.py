@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 from pyssian import GaussianOutFile
-from .utils import write_2_file, register_main
+from .utils import write_2_file
 
 import argparse
 
@@ -38,7 +38,41 @@ class Derivative(Protocol):
     dXt:float|None
     new:float|None
 
+RE_CARTESIAN = re.compile(r'Cartesian.Forces\:.*Max\s*([0-9|\.]*).RMS\s*[0-9|\.]*')
 
+# Utility Functions
+def get_differential(Link:Link103,variable:Parameter):
+    for item in Link.derivatives:
+        if item.Var == variable.Name:
+            return item.dEdX
+    else:
+        raise ValueError(f'Variable {variable.Name} not Found in {Link.__repr__()}')
+def get_parameter_value(Link:Link103,variable:Parameter):
+    for item in Link.parameters:
+        if item.Name == variable.Name:
+            return item.Value
+    else:
+        raise ValueError(f'Variable {variable.Name} not Found in {Link.__repr__()}')
+def get_value_from_derivatives(link:Link103,variable:Parameter):
+    for item in link.derivatives:
+        if item.Var == variable.Name:
+            return item.new
+    else:
+        raise ValueError(f'Variable {variable.Name} not Found in {link.__repr__()}')
+def get_convergence(link:Link103):
+    for item in link.convergence:
+        if item.Item =='Maximum Force':
+            if item.Converged:
+                return 'YES'
+            return 'NO'
+    else:
+        raise RuntimeError('No Maximum Force Convergence item found')
+def get_cartesian_forces_max(link:Link716):
+    re_match = RE_CARTESIAN.findall(link.text)
+    if re_match:
+        return re_match[0]
+
+# Parser and Main definition
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('ifile',
                     help='Gaussian Output File')
@@ -53,50 +87,12 @@ parser.add_argument('--scan',help="""Specify that the gaussian out file is a
                     a scan automatically detect the coordinate to track""",
                     action='store_true')
 
-def get_differential(Link:Link103,variable:Parameter):
-    for item in Link.derivatives:
-        if item.Var == variable.Name:
-            return item.dEdX
-    else:
-        raise ValueError(f'Variable {variable.Name} not Found in {Link.__repr__()}')
-
-def get_parameter_value(Link:Link103,variable:Parameter):
-    for item in Link.parameters:
-        if item.Name == variable.Name:
-            return item.Value
-    else:
-        raise ValueError(f'Variable {variable.Name} not Found in {Link.__repr__()}')
-
-def get_value_from_derivatives(link:Link103,variable:Parameter):
-    for item in link.derivatives:
-        if item.Var == variable.Name:
-            return item.new
-    else:
-        raise ValueError(f'Variable {variable.Name} not Found in {link.__repr__()}')
-
-def get_convergence(link:Link103):
-    for item in link.convergence:
-        if item.Item =='Maximum Force':
-            if item.Converged:
-                return 'YES'
-            return 'NO'
-    else:
-        raise RuntimeError('No Maximum Force Convergence item found')
-
-re_Cartesian = re.compile(r'Cartesian.Forces\:.*Max\s*([0-9|\.]*).RMS\s*[0-9|\.]*')
-def get_cartesian_forces_max(link:Link716):
-    Match = re_Cartesian.findall(link.text)
-    if Match:
-        return Match[0]
-
-
-@register_main
-def main_track(
-               ifile:str|Path,
-               ofile:str|Path|None=None,
-               scan:bool=False,
-               variable:str|None=None
-               ):
+def main(
+         ifile:str|Path,
+         ofile:str|Path|None=None,
+         scan:bool=False,
+         variable:str|None=None
+         ):
     
     ifile = Path(ifile)
 
