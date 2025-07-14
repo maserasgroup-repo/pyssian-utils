@@ -9,16 +9,8 @@ from ._version import __version__
 from pyssian.gaussianclasses import GaussianOutFile
 
 # Core functions for pyssianutils command line inner workings
-SUBPARSERS = dict()
 MAINS = dict() 
 
-def register_subparser(f):
-    # assume all functions that will be be decorated 
-    # to create the corresponding subparsers are 
-    # subparser_{command}
-    command = f.__name__.split('_')[1]
-    SUBPARSERS[command] = f
-    return f
 def register_main(f,name=None):
     # assume all functions that will be be decorated 
     # to create the corresponding MAINS are 
@@ -34,10 +26,6 @@ def create_parser()-> tuple[argparse.ArgumentParser,argparse._SubParsersAction]:
     parser = argparse.ArgumentParser(description=__doc__,prog='pyssianutils')
     parser.add_argument('--version', action='version', version=f'pyssianutils {__version__}')
     subparsers = parser.add_subparsers(help='sub-command help',dest='command')
-
-
-    for _,add_subparser in SUBPARSERS.items(): 
-        add_subparser(subparsers)
 
     return parser, subparsers
 def add_parser_as_subparser(subparsers:argparse._SubParsersAction,

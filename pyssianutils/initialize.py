@@ -5,24 +5,25 @@ import tarfile
 import importlib.resources
 
 from pathlib import Path
+from functools import cache
 
-from .utils import register_subparser, register_main
+from .utils import register_main
 
 # Typing imports
 import argparse
 
 # Utility Functions
+@cache
 def get_appdir() -> Path: 
     system = platform.system()
     if system == 'Linux': 
         return Path.home()/'.pyssianutils'
     raise NotImplementedError('Sorry I have only implemented this in Linux')
-
+@cache
 def get_resourcesdir() -> Path: 
     resourcesdir = importlib.resources.files(__package__)/'resources'
     return resourcesdir
     #raise NotImplementedError('If you are getting this error complain to the developer')
-
 def pack_appdir(appdir:Path,target:Path=Path('default_appdata.tar')): 
     with tarfile.open(target,'w') as tar:
         tar.add(appdir/'defaults.ini','defaults.ini')
@@ -37,30 +38,31 @@ def unpack_appdir(ifile:Path,location:Path):
                    filter='data')
     
     tar.close()
-
+@cache
 def check_initialization():
     appdir = get_appdir()
     if not appdir.exists(): 
         raise RuntimeError(f"{appdir} does not exist. Please ensure to run pyssianutils 'init'")
 
 # Main APIs 
+init_description = """
+Should be run after a fresh installation. Creates the local 
+directories where the user defaults and will application data will be stored
+"""
 
-@register_subparser
-def subparser_init(subparsers:argparse._SubParsersAction) -> None:
-    subparser = subparsers.add_parser('init', help="""Should be run after a 
-                                      fresh installation. Creates the local 
-                                      directories where the user defaults and 
-                                      will application data will be stored""")
-    subparser.add_argument("--unpack",metavar='PACKAGE',dest='package',
-                           help=""" package containing the configuration of a 
-                           previous pyssianutils setup. Obtained through 
-                           'pyssianutils pack myfile.pack' """,default=None)
-    subparser.add_argument("--force",action='store_true',default=False,
-                           help="""overwrite any previous pyssianutils 
-                           application data if it already existed""")
+init_parser = argparse.ArgumentParser(description=init_description)
+init_parser.add_argument("--unpack",metavar='PACKAGE',dest='package',
+                        help=""" package containing the configuration of a 
+                        previous pyssianutils setup. Obtained through 
+                        'pyssianutils pack myfile.pack' """,default=None)
+init_parser.add_argument("--force",action='store_true',default=False,
+                        help="""overwrite any previous pyssianutils 
+                        application data if it already existed""")
 
-@register_main
-def main_init(package:None|Path|str=None,force:bool=False):
+def init_main(
+              package:None|Path|str=None,
+              force:bool=False
+              ):
     appdir = get_appdir()
 
     if appdir.exists() and not force:
@@ -79,22 +81,18 @@ def main_init(package:None|Path|str=None,force:bool=False):
         shutil.copy(resources/'defaults.ini',appdir)
         shutil.copytree(resources/'templates',appdir/'templates')
 
-@register_subparser
-def subparser_clean(subparsers:argparse._SubParsersAction) -> None:
-    subparser = subparsers.add_parser('clean', help="""Removes the app data
-                                      files and local directory where the 
-                                      pyssianutils data was stored. This is
-                                      recommended before uninstalling the
-                                      software""")
+clean_description = """
+Removes the app data files and local directory where the pyssianutils data was 
+stored. This is recommended before uninstalling the software
+"""
 
-@register_main
-def main_clean():
+clean_parser = argparse.ArgumentParser(description=clean_description)
+
+def clean_main():
+
+    check_initialization()
+
     appdir = get_appdir()
-
-    if not appdir.exists():
-        warnings.warn('No previous app data was found thus nothing has been done')
-        return
-    
     shutil.rmtree(appdir)
 
 
