@@ -16,6 +16,7 @@ def get_appdir() -> Path:
     system = platform.system()
     if system == 'Linux': 
         return Path.home()/'.pyssianutils'
+    raise NotImplementedError('Sorry I have only implemented this in Linux')
 
 def get_resourcesdir() -> Path: 
     resourcesdir = importlib.resources.files(__package__)/'resources'
