@@ -7,7 +7,7 @@ import pyssianutils.initialize
 import pyssianutils.input
 import pyssianutils.print
 import pyssianutils.toxyz
-import pyssianutils.track
+import pyssianutils.others
 
 if __name__ == '__main__': 
     parser, subparsers = create_parser()
@@ -29,7 +29,7 @@ if __name__ == '__main__':
         (pyssianutils.input.asinput, 'asinput'),
         (pyssianutils.print, 'print'),
         (pyssianutils.toxyz, 'toxyz'),
-        (pyssianutils.track, 'track'),
+        (pyssianutils.others, 'others'),
     ]
     for module,modulename in modules: 
         add_parser_as_subparser(subparsers,

@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 from pyssian import GaussianOutFile
-from .utils import write_2_file
+from ..utils import write_2_file
 
 import argparse
 

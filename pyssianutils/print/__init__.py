@@ -1,8 +1,7 @@
 """
 Gathers the different output printing options
 """
-
-from pathlib import Path
+import argparse
 
 from ..utils import add_parser_as_subparser
 from ..initialize import check_initialization
@@ -10,9 +9,6 @@ from ..initialize import check_initialization
 from . import potential
 from . import thermo
 from . import summary
-
-# Typing imports
-import argparse
 
 parser = argparse.ArgumentParser(description=__doc__)
 subparsers = parser.add_subparsers(help='sub-command help',dest='print_mode')
