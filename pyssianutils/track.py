@@ -1,8 +1,8 @@
-#!/bin/usr/env python3
 """
 Prints the name of the scanned variable, its value, derivative, Max Forces
-conversion Y/N, Cartesian forces value and Geometry index of the geometry in
-the file.
+convergence Y/N, Cartesian forces value and Geometry index of the geometry in
+the file. If no variable is provided nor it is a scan calculation it will 
+print the variables that may be tracked and exit.
 """
 
 import os
@@ -11,113 +11,158 @@ from pathlib import Path
 
 
 from pyssian import GaussianOutFile
-from .utils import write_2_file
+from .utils import write_2_file, register_main
 
 import argparse
 
+# Typing imports
+from typing import Protocol
+from pyssian.linkjobparsers import Link716,Link103
+
+class Parameter(Protocol):
+    Name:str|None
+    Definition:str|None
+    Value:float|int|None
+    Derivative:float|int|None
+class ConverItem(Protocol):
+    Item:str|None
+    Value:float|None
+    Threshold:float|None
+    Converged:bool|None
+class Derivative(Protocol): 
+    Var:str|None
+    old:float|None
+    dEdX:float|None
+    dXl:float|None
+    dXq:float|None
+    dXt:float|None
+    new:float|None
+
+
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('File',help='Gaussian Output File',)
-parser.add_argument('Var',help='Internal variable name to track',nargs='?')
-parser.add_argument('-O','--OutFile',help="""File to write the Data. If it
-                    exists, the data will be appended, if not specified it will
-                    print to the console""",default=None)
+parser.add_argument('ifile',
+                    help='Gaussian Output File')
+parser.add_argument('variable',
+                    nargs='?',default=None,
+                    help='Internal variable name to track')
+parser.add_argument('-o','--outfile',
+                    default=None,dest='ofile',
+                    help="""File to write the Data. If it exists, the data will 
+                    be appended, if not specified it will print to the console""")
 parser.add_argument('--scan',help="""Specify that the gaussian out file is a
                     a scan automatically detect the coordinate to track""",
                     action='store_true')
 
-def GetDeriv(Link,Var):
+def get_differential(Link:Link103,variable:Parameter):
     for item in Link.derivatives:
-        if item.Var == Var.Name:
+        if item.Var == variable.Name:
             return item.dEdX
     else:
-        raise ValueError(f'Variable {Var.Name} not Found in {Link.__repr__()}')
+        raise ValueError(f'Variable {variable.Name} not Found in {Link.__repr__()}')
 
-def GetParameterValue(Link,Var):
+def get_parameter_value(Link:Link103,variable:Parameter):
     for item in Link.parameters:
-        if item.Name == Var.Name:
+        if item.Name == variable.Name:
             return item.Value
     else:
-        raise ValueError(f'Variable {Var.Name} not Found in {Link.__repr__()}')
+        raise ValueError(f'Variable {variable.Name} not Found in {Link.__repr__()}')
 
-def GetValueFromDerivatives(Link,Var):
-    for item in Link.derivatives:
-        if item.Var == Var.Name:
+def get_value_from_derivatives(link:Link103,variable:Parameter):
+    for item in link.derivatives:
+        if item.Var == variable.Name:
             return item.new
     else:
-        raise ValueError(f'Variable {Var.Name} not Found in {Link.__repr__()}')
+        raise ValueError(f'Variable {variable.Name} not Found in {link.__repr__()}')
 
-def GetConversion(Link):
-    for ConvItem in Link.conversion:
-        if ConvItem.Item =='Maximum Force':
-            if ConvItem.Converged:
-                Out = 'YES'
-            else:
-                Out = 'NO'
-            return Out
+def get_convergence(link:Link103):
+    for item in link.convergence:
+        if item.Item =='Maximum Force':
+            if item.Converged:
+                return 'YES'
+            return 'NO'
     else:
-        raise RuntimeError('No Maximum Force Conversion item found')
+        raise RuntimeError('No Maximum Force Convergence item found')
 
 re_Cartesian = re.compile(r'Cartesian.Forces\:.*Max\s*([0-9|\.]*).RMS\s*[0-9|\.]*')
-def GetCartesianForcesMax(Link):
-    Match = re_Cartesian.findall(Link.text)
+def get_cartesian_forces_max(link:Link716):
+    Match = re_Cartesian.findall(link.text)
     if Match:
         return Match[0]
 
 
-if __name__ == "__main__":
-    args = parser.parse_args()
-    File = Path(args.File)
-    OutFile = args.OutFile
-    if args.OutFile is not None:
-        OutFile = os.path.abspath(args.OutFile)
-        WriteOutput = write_2_file(OutFile)
+@register_main
+def main_track(
+               ifile:str|Path,
+               ofile:str|Path|None=None,
+               scan:bool=False,
+               variable:str|None=None
+               ):
+    
+    ifile = Path(ifile)
+
+    if ofile is not None:
+        ofile = Path(ofile)
+        write_output = write_2_file(ofile)
     else:
-        WriteOutput = print
-    # Header to know which is each column
-    msg_ini = '{: ^10}' + '\t{: ^10}'*5
-    WriteOutput(msg_ini.format('Variable','Value','dE/dX','Conver','Car Forces',
-                    'Geom Num'))    
-    # Format for the numbers
-    txt = '{: ^10}\t{: ^10}\t{: ^10}\t{: ^10}\t{: ^10}\t{: ^10}' # {: 03.9f}
+        write_output = print
+    
     # Actual parsing
-    if not File.exists(): #In the case of an empty filename, write an empty line
-        raise ValueError(f'File {File} does not exist')
-    with GaussianOutFile(File,[103,202,716]) as GOF:
+    if not ifile.exists(): #In the case of an empty filename, write an empty line
+        raise ValueError(f'File {ifile} does not exist')
+    
+    with GaussianOutFile(ifile,[103,202,716]) as GOF:
         GOF.update()
     
-    if args.scan: 
-        Link = GOF.get_links(103)[0]
-        for var in Link.parameters:
+    if variable is None and not scan: 
+        link = GOF.get_links(103)[0]
+        print(f'Available parameters to track for {ifile}')
+        print(f'      Name    Definition    ')
+        for parameter in link.parameters:
+            print(f'    {parameter.Name:>6}    {parameter.Definition:<10}')
+        return
+
+    # Header to know which is each column
+    msg_ini = '{: ^10}' + '\t{: ^10}'*5
+    write_output(msg_ini.format(
+        'Variable','Value','dE/dX','Conver','Car Forces','Geom Num')
+    )
+
+    # Format for the numbers
+    txt = '{: ^10}\t{: ^10}\t{: ^10}\t{: ^10}\t{: ^10}\t{: ^10}' # {: 03.9f}
+
+    if scan: 
+        link = GOF.get_links(103)[0]
+        for var in link.parameters:
             if var.Derivative == 'Scan':
-                ScanVar = var
-                Value = var.Value
+                target_var = var
+                target_value = var.Value
                 break
         else:
             raise ValueError("No 'Scan' variable found in the file")
-        VarName = ScanVar.Name
+        target_name = target_var.Name
     else:
-        Link = GOF.get_links(103)[0]
-        for var in Link.parameters:
-            if var.Name == args.Var:
-                ScanVar = var
-                Value = var.Value
+        link = GOF.get_links(103)[0]
+        for var in link.parameters:
+            if var.Name == variable:
+                target_var = var
+                target_value = var.Value
                 break
         else:
-            raise ValueError(f"The variable '{args.Var}' is not an Internal Coordinate")
-        VarName = args.Var
+            raise ValueError(f"The variable '{variable}' is not an Internal Coordinate")
+        target_name = variable
 
     geom_index = 0
     for l202,l716,l103 in zip(GOF[0][1:],GOF[0][2:],GOF[0][3:]):
         if (l202.number != 202 or l716.number != 716 or l103.number != 103):
             continue
-        if l103.parameters and args.scan:
-            Value = GetParameterValue(l103,ScanVar)
-        elif not args.scan:
-            Value = GetValueFromDerivatives(l103,ScanVar)
-        dEdX = GetDeriv(l103,ScanVar)
-        Converged = GetConversion(l103)
-        CartForces = GetCartesianForcesMax(l716)
-        WriteOutput(txt.format(VarName,Value,dEdX,Converged,CartForces,geom_index+1))
+        if l103.parameters and scan:
+            target_value = get_parameter_value(l103,target_var)
+        elif not scan:
+            target_value = get_value_from_derivatives(l103,target_var)
+        dEdX = get_differential(l103,target_var)
+        convergence = get_convergence(l103)
+        forces = get_cartesian_forces_max(l716)
+        write_output(txt.format(target_name,target_value,dEdX,convergence,forces,geom_index+1))
 
         # Update geom index
         geom_index += 1    
