@@ -3,8 +3,7 @@ Prints the Potential energy, Zero point energy, Enthalpy and Free energy
 from a gaussian frequency calculation. By default the Potential energy is
 the value of the 'Done'
 """
-
-import os
+import argparse
 from pathlib import Path
 
 from pyssian import GaussianOutFile
@@ -12,48 +11,7 @@ from pyssian.chemistryutils import is_method
 from ..utils import (thermochemistry, potential_energy, 
                      write_2_file, ALLOWEDMETHODS)
 
-# typing imports
-import argparse
-
-def add_subparser(parser:argparse._SubParsersAction):
-    subparser = parser.add_parser('summary', help=__doc__)
-    subparser.add_argument('files',help='Gaussian Output File(s)',nargs='+')
-    subparser.add_argument('-l','--listfile',help="""When enabled instead of
-                           considering the files provided as the gaussian output files
-                           considers the file provided as a list of gaussian output
-                           files""",action='store_true',dest='is_listfile')
-    subparser.add_argument('-o','--outfile',help="""File to write the Data. If it
-                           exists, the data will be appended. If none is provided 
-                           it will be printed to stdout""",default=None)
-    subparser.add_argument('--with-sp',help="""if enabled it will try to match the 
-                        pattern provided to compute the SP corrections from the files
-                        that match the pattern to provide the final energies""",
-                        dest='with_sp',default=False,action='store_true')
-    subparser.add_argument('--pattern',help="""pattern used when matching the SP files, 
-                        defaults to 'SP'""",
-                        default='SP')
-    subparser.add_argument('--method',help=""" When not provided it will 
-                           attempt (and may fail) to guess the method used 
-                           for the calculation to correctly read the potential
-                           energy. Otherwise it defaults to the Energy of the
-                           'SCF Done:' """, 
-                           choices=ALLOWEDMETHODS + ['default'],
-                           default='default',type=lambda x: x.lower())
-    subparser.add_argument('--method-sp',help=""" When not provided it will 
-                           attempt (and may fail) to guess the method used 
-                           for the SP calculation to correctly read the potential
-                           energy. Otherwise it defaults to the Energy of the
-                           'SCF Done:' """,
-                           choices=ALLOWEDMETHODS,dest='method_sp',
-                           default='default',type=lambda x: x.lower())
-    subparser.add_argument('--only-stem',help=""" only show the file stem 
-                           instead of the full path """,default=False,
-                           action='store_true',dest='only_stem')
-    subparser.add_argument('-v','--verbose',help="""if enabled it will raise an error
-                           anytime it is unable to find the thermochemistry of the 
-                           provided file""", default=False,action='store_true')
-
-
+# Utility Functions
 def guess_method(GOF:GaussianOutFile): 
     commandline = GOF.get_links(1)[-1].commandline
     # Assume that any "/" is not in any relevant keyword and it will only split 
@@ -68,7 +26,6 @@ def guess_method(GOF:GaussianOutFile):
         return method
     else: 
         return 'default'
-
 def parse_gaussianfile(ifile:str|Path, 
                        number_fmt:str, 
                        pattern:str|None=None,
@@ -137,7 +94,45 @@ def parse_gaussianfile(ifile:str|Path,
         G_sp = number_fmt.format(G_sp)
     
     return U, Z, H, G, U_sp, G_sp
-    
+
+# Parser and Main definition
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('files',help='Gaussian Output File(s)',nargs='+')
+parser.add_argument('-l','--listfile',help="""When enabled instead of
+                        considering the files provided as the gaussian output files
+                        considers the file provided as a list of gaussian output
+                        files""",action='store_true',dest='is_listfile')
+parser.add_argument('-o','--outfile',help="""File to write the Data. If it
+                        exists, the data will be appended. If none is provided 
+                        it will be printed to stdout""",default=None)
+parser.add_argument('--with-sp',help="""if enabled it will try to match the 
+                    pattern provided to compute the SP corrections from the files
+                    that match the pattern to provide the final energies""",
+                    dest='with_sp',default=False,action='store_true')
+parser.add_argument('--pattern',help="""pattern used when matching the SP files, 
+                    defaults to 'SP'""",
+                    default='SP')
+parser.add_argument('--method',help=""" When not provided it will 
+                        attempt (and may fail) to guess the method used 
+                        for the calculation to correctly read the potential
+                        energy. Otherwise it defaults to the Energy of the
+                        'SCF Done:' """, 
+                        choices=ALLOWEDMETHODS + ['default'],
+                        default='default',type=lambda x: x.lower())
+parser.add_argument('--method-sp',help=""" When not provided it will 
+                        attempt (and may fail) to guess the method used 
+                        for the SP calculation to correctly read the potential
+                        energy. Otherwise it defaults to the Energy of the
+                        'SCF Done:' """,
+                        choices=ALLOWEDMETHODS,dest='method_sp',
+                        default='default',type=lambda x: x.lower())
+parser.add_argument('--only-stem',help=""" only show the file stem 
+                        instead of the full path """,default=False,
+                        action='store_true',dest='only_stem')
+parser.add_argument('-v','--verbose',help="""if enabled it will raise an error
+                        anytime it is unable to find the thermochemistry of the 
+                        provided file""", default=False,action='store_true')
+
 def main(files:list[str],
          is_listfile:bool=False,
          method:str|None=None,

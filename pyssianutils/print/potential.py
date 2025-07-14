@@ -1,36 +1,14 @@
 """
 Prints the Potential energy. Defaults to the 'Done' of l502 or l508
 """
+import argparse
 from pathlib import Path
 
 from pyssian import GaussianOutFile
 from pyssian.chemistryutils import is_method
 from ..utils import potential_energy, write_2_file, ALLOWEDMETHODS
 
-# typing imports
-import argparse
-
-def add_subparser(parser:argparse._SubParsersAction):
-    subparser = parser.add_parser('potential', help=__doc__)
-    subparser.add_argument('files',help='Gaussian Output File(s)',nargs='+')
-    subparser.add_argument('-l','--listfile',help="""When enabled instead of
-                           considering the files provided as the gaussian output files
-                           considers the file provided as a list of gaussian output
-                           files""",action='store_true',dest='is_listfile')
-    subparser.add_argument('-o','--outfile',help="""File to write the Data. If it
-                           exists, the data will be appended. If none is provided 
-                           it will be printed to stdout""",default=None)
-    subparser.add_argument('--method',help=""" When not provided it will 
-                           attempt (and may fail) to guess the method used 
-                           for the calculation to correctly read the potential
-                           energy. Otherwise it defaults to the Energy of the
-                           'SCF Done:' """, 
-                           choices=ALLOWEDMETHODS,
-                           default='default',type=lambda x: x.lower())
-    subparser.add_argument('-v','--verbose',help="""if enabled it will raise an error
-                           anytime it is unable to find the energy of the provided file
-                           """, default=False,action='store_true')
-
+# Utility functions
 def guess_method(GOF:GaussianOutFile): 
     commandline = GOF.get_links(1)[-1].commandline
     # Assume that any "/" is not in any relevant keyword and it will only split 
@@ -45,15 +23,11 @@ def guess_method(GOF:GaussianOutFile):
         return method
     else: 
         return 'default'
-
-
 def parse_gaussianfile(ifile:str|Path, 
                        number_fmt:str, 
-                       verbose:bool=False) -> tuple[str]:
+                       verbose:bool=False) -> str:
     
     ifile = Path(ifile)
-
-    U = ''
 
     with GaussianOutFile(ifile,[1,120,502,508,716,804,913,9999]) as GOF:
             GOF.read()
@@ -63,13 +37,32 @@ def parse_gaussianfile(ifile:str|Path,
     U = potential_energy(GOF,method)
     
     if U is None and not verbose: 
-        U = ''
+        return ''
     elif verbose:
         raise RuntimeError(f'Potential Energy not found in file {ifile.name}')
-    else: 
-        U = number_fmt.format(U)
-    
-    return U
+
+    return number_fmt.format(U)
+
+# Parser and Main Definition
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('files',help='Gaussian Output File(s)',nargs='+')
+parser.add_argument('-l','--listfile',help="""When enabled instead of
+                        considering the files provided as the gaussian output files
+                        considers the file provided as a list of gaussian output
+                        files""",action='store_true',dest='is_listfile')
+parser.add_argument('-o','--outfile',help="""File to write the Data. If it
+                        exists, the data will be appended. If none is provided 
+                        it will be printed to stdout""",default=None)
+parser.add_argument('--method',help=""" When not provided it will 
+                        attempt (and may fail) to guess the method used 
+                        for the calculation to correctly read the potential
+                        energy. Otherwise it defaults to the Energy of the
+                        'SCF Done:' """, 
+                        choices=ALLOWEDMETHODS,
+                        default='default',type=lambda x: x.lower())
+parser.add_argument('-v','--verbose',help="""if enabled it will raise an error
+                        anytime it is unable to find the energy of the provided file
+                        """, default=False,action='store_true')
 
 def main(
          files:list[str|Path],

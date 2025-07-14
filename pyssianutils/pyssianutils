@@ -1,7 +1,8 @@
 #!/bin/usr/env python3
 import sys
 
-from pyssianutils.utils import SUBPARSERS, MAINS, create_parser
+from pyssianutils.utils import  (MAINS, create_parser, 
+                                 add_parser_as_subparser, register_main)
 
 # These imports are required, to populate the SUBPARSERS and the MAINS variables
 import pyssianutils.initialize
@@ -10,43 +11,20 @@ import pyssianutils.print
 import pyssianutils.toxyz
 import pyssianutils.track
 
-from argparse import ArgumentError
-
-def add_parser_as_subparser(subparsers,parser,name,**kwargs):
-    
-    # set prog from the existing prefix
-    if kwargs.get('prog') is None:
-        kwargs['prog'] = '%s %s' % (subparsers._prog_prefix, name)
-
-    aliases = kwargs.pop('aliases', ())
-
-    if name in subparsers._name_parser_map:
-        raise ArgumentError(subparsers, f'conflicting subparser: {name}')
-    for alias in aliases:
-        if alias in subparsers._name_parser_map:
-            raise ArgumentError(subparsers, f'conflicting subparser alias: {alias}')
-    
-    if 'help' in kwargs:
-        help = kwargs.pop('help')
-        choice_action = subparsers._ChoicesPseudoAction(name, aliases, help)
-        subparsers._choices_actions.append(choice_action)
-
-    # create the parser and add it to the map
-    # This is uneeded cause it already exists: 
-    #     parser = subparsers._parser_class(**kwargs)
-    subparsers._name_parser_map[name] = parser
-
-    # make parser available under aliases also
-    for alias in aliases:
-        subparsers._name_parser_map[alias] = parser
-
-    return parser
-
-
-
 if __name__ == '__main__': 
     parser, subparsers = create_parser()
-    add_parser_as_subparser(subparsers,pyssianutils.track.parser,'track',help='something')
+
+    modules = [
+        #(pyssianutils.input, ''),
+        (pyssianutils.print, 'print'),
+        (pyssianutils.toxyz, 'toxyz'),
+        (pyssianutils.track, 'track'),
+    ]
+    for module,modulename in modules: 
+        add_parser_as_subparser(subparsers,
+                                module.parser,modulename,
+                                help=module.__doc__)
+        register_main(module.main,modulename)
     
     args = parser.parse_args()
 
