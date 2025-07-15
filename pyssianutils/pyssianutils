@@ -24,6 +24,11 @@ if __name__ == '__main__':
                             help=pyssianutils.initialize.clean_description)
     register_main(pyssianutils.initialize.clean_main,'clean')
 
+    add_parser_as_subparser(subparsers,
+                            pyssianutils.initialize.defaults_parser, 'defaults',
+                            help=pyssianutils.initialize.defaults_description)
+    register_main(pyssianutils.initialize.defaults_main,'defaults')
+
     # Now we add the remaining parsers
     modules = [
         (pyssianutils.input.inputht, 'inputht'),
@@ -32,7 +37,7 @@ if __name__ == '__main__':
         (pyssianutils.print, 'print'),
         (pyssianutils.toxyz, 'toxyz'),
         (pyssianutils.others, 'others'),
-        (pyssianutils.submit,'submit'),
+        (pyssianutils.submit, 'submit'),
     ]
     for module,modulename in modules: 
         add_parser_as_subparser(subparsers,
