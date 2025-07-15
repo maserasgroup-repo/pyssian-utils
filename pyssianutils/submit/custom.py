@@ -16,16 +16,10 @@ from itertools import groupby
 from pyssian.classutils import DirectoryTree
 from pyssian.gaussianclasses import GaussianInFile
 
-from ..initialize import get_resourcesdir, get_appdir
+from ..initialize import load_app_defaults, check_initialization
 
 # Load app defaults
-DEFAULTS = configparser.ConfigParser()
-_appdir = get_appdir() 
-if _appdir.exists(): 
-    DEFAULTS.read(_appdir/'defaults.ini')
-else:
-    DEFAULTS.read(get_resourcesdir()/'defaults.ini')
-
+DEFAULTS = load_app_defaults()
 GAUSSIAN_INPUT_SUFFIX = DEFAULTS['submit.custom']['in_suffix']
 GAUSSIAN_OUTPUT_SUFFIX = DEFAULTS['submit.custom']['out_suffix']
 SOFTWARE_DEFAULT = DEFAULTS['submit.custom']['software']
@@ -203,6 +197,8 @@ def main(
          as_comments:bool=False,
          no_run:bool=False,
          scriptname:str=SCRIPT_DEFAULT):
+
+    check_initialization() 
 
     in_suffix,out_suffix = select_suffix(*suffix)
 

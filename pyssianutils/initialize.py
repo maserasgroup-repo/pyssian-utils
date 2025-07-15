@@ -2,6 +2,8 @@ import shutil
 import platform
 import warnings
 import tarfile
+import configparser
+from collections import defaultdict
 import importlib.resources
 
 from pathlib import Path
@@ -43,6 +45,14 @@ def check_initialization():
     appdir = get_appdir()
     if not appdir.exists(): 
         raise RuntimeError(f"{appdir} does not exist. Please ensure to run pyssianutils 'init'")
+@cache
+def load_app_defaults() -> configparser.ConfigParser:
+    defaults = configparser.ConfigParser()
+    # Order is important as we want to override any packaged defaults with the
+    # User's defaults
+    defaults.read([get_resourcesdir()/'defaults.ini',
+                   get_appdir() /'defaults.ini'])
+    return defaults
 
 # Main APIs 
 init_description = """

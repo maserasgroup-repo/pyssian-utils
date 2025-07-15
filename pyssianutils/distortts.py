@@ -1,9 +1,9 @@
-"""
+__doc__ = """
 Takes a gaussian output file and constructs 2 gaussian input files by 
 distorting the last geometry of the provided file along the first imaginary 
-frequency and using as template the .com file with the same name as the provided
-output file. This approach is sometimes termed as "poorman's irc", but in no 
-case it substitutes a proper IRC calculation.
+frequency and using as template the {in_suffix} file with the same name as the 
+provided output file. This approach is sometimes termed as "poorman's irc", but 
+in no case it substitutes a proper IRC calculation.
 """
 import argparse
 from pathlib import Path
@@ -14,10 +14,15 @@ from pyssian.classutils import Geometry, DirectoryTree
 
 import numpy as np
 
-from .initialize import check_initialization
+from .initialize import check_initialization, load_app_defaults
 
-GAUSSIAN_INPUT_SUFFIX = '.com'
-GAUSSIAN_OUTPUT_SUFFIX = '.log'
+DEFAULTS = load_app_defaults()
+GAUSSIAN_INPUT_SUFFIX = DEFAULTS['distortts']['in_suffix']
+GAUSSIAN_OUTPUT_SUFFIX = DEFAULTS['distortts']['out_suffix']
+DEFAULT_SUFFIX = (GAUSSIAN_INPUT_SUFFIX,GAUSSIAN_OUTPUT_SUFFIX)
+DEFAULT_MARKER = DEFAULTS['distortts']['default_marker']
+FORWARD_MARK = DEFAULTS['distortts']['forward_mark']
+REVERSE_MARK = DEFAULTS['distortts']['forward_mark']
 
 class NotFoundError(RuntimeError):
     pass
@@ -28,10 +33,12 @@ def prepare_filepaths(filepaths:list[str|Path],
                       out_suffix:str,
                       is_folder:bool,
                       is_listfile:bool,
-                      marker:str|None,
+                      marker:str=DEFAULT_MARKER,
                       no_marker:bool=False,
                       is_inplace:bool=False,
                       do_overwrite:bool=False,
+                      forward_mark:str=FORWARD_MARK,
+                      reverse_mark:str=REVERSE_MARK,
                       ) -> tuple[list[Path]]:
     """
     This function encapsulates all the logic related to the generation of the
@@ -68,16 +75,20 @@ def prepare_filepaths(filepaths:list[str|Path],
                                                                  outdir,
                                                                  in_suffix,
                                                                  out_suffix,
-                                                                 )
+                                                                 forward_mark,
+                                                                 reverse_mark)
     else:
         templates,geometries,newfiles = prepare_filepaths_nofolder(filepaths,
                                                                    outdir,
                                                                    in_suffix,
+                                                                   forward_mark,
+                                                                   reverse_mark,
                                                                    is_inplace,
-                                                                   is_listfile,
+                                                                   is_listfile
                                                                    )
     # Rename the newfiles to ensure the include (or not) the marker
-    marker = select_marker(marker, no_marker)
+    if no_marker: 
+        marker = ''
 
     if marker:
         newfiles_f,newfiles_r = newfiles
@@ -89,7 +100,9 @@ def prepare_filepaths(filepaths:list[str|Path],
 def prepare_filepaths_folder(folder:Path|str,
                              odir:str|Path|None,
                              in_suffix:str,
-                             out_suffix:str) -> tuple[list[Path]]:
+                             out_suffix:str,
+                             forward_mark:str,
+                             reverse_mark:str) -> tuple[list[Path]]:
     """
     This function encapsulates the logic of the path generation when the
     --folder flag is enabled.
@@ -107,13 +120,15 @@ def prepare_filepaths_folder(folder:Path|str,
     templates = [path.with_suffix(in_suffix) for path in geometries]
     newfiles = [dir.newpath(path).with_suffix(in_suffix) for path in geometries]
     
-    newfiles_f = [p.with_stem(f'{p.stem}_f{p.suffix}') for p in newfiles]
-    newfiles_r = [p.with_stem(f'{p.stem}_r{p.suffix}') for p in newfiles]
+    newfiles_f = [p.with_stem(f'{p.stem}_{forward_mark}{p.suffix}') for p in newfiles]
+    newfiles_r = [p.with_stem(f'{p.stem}_{reverse_mark}{p.suffix}') for p in newfiles]
     
     return templates, geometries, (newfiles_f,newfiles_r)
 def prepare_filepaths_nofolder(files:list[str|Path],
                                odir:str|Path|None,
                                in_suffix:str,
+                               forward_mark:str,
+                               reverse_mark:str,
                                is_inplace:bool=False,
                                is_listfile:bool=False,
                                ) -> tuple[list[Path]]:
@@ -141,43 +156,22 @@ def prepare_filepaths_nofolder(files:list[str|Path],
     else:
         newfiles = [odir/(g.with_suffix(in_suffix).name) for g in geometries]
     
-    newfiles_f = [p.with_stem(f'{p.stem}_f{p.suffix}') for p in newfiles]
-    newfiles_r = [p.with_stem(f'{p.stem}_r{p.suffix}') for p in newfiles]
+    newfiles_f = [p.with_stem(f'{p.stem}_{forward_mark}{p.suffix}') for p in newfiles]
+    newfiles_r = [p.with_stem(f'{p.stem}_{reverse_mark}{p.suffix}') for p in newfiles]
 
     return templates, geometries, (newfiles_f,newfiles_r)
 
-def select_marker(marker:str|None,
-                  no_marker:bool=False):
-    """
-    This function encapsulates all the logic related to the selection of the
-    marker.
-    """
-    # Logic to handle the marker selection
-    if  no_marker:
-        marker = ''
-    elif marker is None:
-        marker = 'new'
-
-    return marker
-def select_suffix(in_suffix:str|None,out_suffix:str|None) -> tuple[str]: 
+def prepare_suffix(in_suffix:str,out_suffix:str) -> tuple[str]: 
     """
     Ensures proper formatting of the suffixes used for gaussian inputs and 
-    outputs and changes the values of the global variables GAUSSIAN_INPUT_SUFFIX,
-    GAUSSIAN_OUTPUT_SUFFIX accordingly
+    outputs
     """
     if in_suffix is not None and in_suffix.startswith('.'):
         in_suffix = in_suffix.rstrip()
-    elif in_suffix is None: 
-        in_suffix = GAUSSIAN_INPUT_SUFFIX
-    else:
-        in_suffix = in_suffix
 
     if out_suffix is not None and out_suffix.startswith('.'):
         out_suffix = out_suffix.rstrip()
-    elif out_suffix is None: 
-        out_suffix = GAUSSIAN_OUTPUT_SUFFIX
-    else:
-        out_suffix = out_suffix
+
     return in_suffix,out_suffix
 
 def apply_distortions(gau_log:str|Path,factor:float=0.13) -> Tuple[Geometry,Geometry]:
@@ -197,45 +191,48 @@ def apply_distortions(gau_log:str|Path,factor:float=0.13) -> Tuple[Geometry,Geom
     return geom_f, geom_r
 
 # Parser and Main definition
+__doc__ = __doc__.format_map(DEFAULTS['distortts'])
+
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('files',help='Gaussian Output Files',nargs='+')
 group_input = parser.add_mutually_exclusive_group()
 group_input.add_argument('-l','--listfile',
-                            dest='is_listfile',
-                            action='store_true',default=False,
-                            help="""When enabled instead of considering the 
-                            files provided as the gaussian output files 
-                            considers the file provided as a list of gaussian
-                            output files""")
+                         dest='is_listfile',
+                         action='store_true',default=False,
+                         help="""When enabled instead of considering the 
+                         files provided as the gaussian output files 
+                         considers the file provided as a list of gaussian
+                         output files""")
 group_input.add_argument('-r','--folder',
-                            dest='is_folder',
-                            action='store_true',default=False,
-                            help="""Takes the folder and its subfolder 
-                            hierarchy and creates a new folder with the same 
-                            subfolder structure. Finds all the .log, attempts 
-                            to find their companion .com files and creates the 
-                            new inputs in their equivalent locations in the new
-                            folder tree structure.""")
+                         dest='is_folder',
+                         action='store_true',default=False,
+                         help=f"""Takes the folder and its subfolder 
+                         hierarchy and creates a new folder with the same 
+                         subfolder structure. Finds all the 
+                         {GAUSSIAN_OUTPUT_SUFFIX}, attempts to find their 
+                         matching {GAUSSIAN_INPUT_SUFFIX} files and creates the 
+                         new inputs in their equivalent locations in the new
+                         folder tree structure.""")
 group_marker = parser.add_mutually_exclusive_group()
 group_marker.add_argument('-m','--marker',
-                        default='new',
-                        help="""Text added to the filename to differentiate 
-                        the original file from the newly created one.
-                        For example, myfile.com may become myfile_marker.com""")
+                          default=DEFAULT_MARKER,
+                          help="""Text added to the filename to differentiate 
+                          the original file from the newly created one.
+                          For example, myfile.com may become myfile_marker.com""")
 group_marker.add_argument('--no-marker',
-                        dest='no_marker',
-                        action='store_true',default=False,
-                        help="The file stems are kept")
+                          dest='no_marker',
+                          action='store_true',default=False,
+                          help="The file stems are kept")
 group_output = parser.add_mutually_exclusive_group()
 group_output.add_argument('-o','--outdir',
-                            default=None,
-                            help="""Where to create the new files, defaults 
-                            to the current directory""")
+                          default=None,
+                          help="""Where to create the new files, defaults 
+                          to the current directory""")
 group_output.add_argument('--inplace',
-                            dest='is_inplace',
-                            action='store_true',default=False,
-                            help="""Creates the new files in the same 
-                            locations as the files provided by the user""")
+                          dest='is_inplace',
+                          action='store_true',default=False,
+                          help="""Creates the new files in the same 
+                          locations as the files provided by the user""")
 parser.add_argument('-ow','--overwrite',
                     dest='do_overwrite',
                     action='store_true',default=False,
@@ -244,16 +241,16 @@ parser.add_argument('-ow','--overwrite',
                     behaviour is to raise an error to notify the user before
                     overwriting).""")
 parser.add_argument('--suffix',
-                    default=(None,None),nargs=2,
+                    default=DEFAULT_SUFFIX,nargs=2,
                     help="""Input and output suffix used for gaussian files""") 
 
 def main(
          files:list[str|Path],
          outdir:str|Path|None=None,
-         suffix:tuple[str|None]=(None,None),
+         suffix:tuple[str]=DEFAULT_SUFFIX,
          is_folder:bool=False,
          is_listfile:bool=False,
-         marker:str|None=None,
+         marker:str=DEFAULT_MARKER,
          no_marker:bool=False,
          is_inplace:bool=False,
          do_overwrite:bool=False,
@@ -262,7 +259,7 @@ def main(
     check_initialization()
 
     # Ensure proper suffixes
-    in_suffix,out_suffix = select_suffix(*suffix)
+    in_suffix,out_suffix = prepare_suffix(*suffix)
 
     templates,geometries,newfiles = prepare_filepaths(files,
                                                       outdir,
