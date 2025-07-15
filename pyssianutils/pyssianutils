@@ -7,7 +7,6 @@ import pyssianutils.initialize
 import pyssianutils.input
 import pyssianutils.print
 import pyssianutils.toxyz
-import pyssianutils.distortts
 import pyssianutils.submit
 import pyssianutils.others
 
@@ -29,9 +28,9 @@ if __name__ == '__main__':
     modules = [
         (pyssianutils.input.inputht, 'inputht'),
         (pyssianutils.input.asinput, 'asinput'),
+        (pyssianutils.input.distortts, 'distort-ts'),
         (pyssianutils.print, 'print'),
         (pyssianutils.toxyz, 'toxyz'),
-        (pyssianutils.distortts, 'distort-ts'),
         (pyssianutils.others, 'others'),
         (pyssianutils.submit,'submit'),
     ]

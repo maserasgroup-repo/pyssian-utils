@@ -15,15 +15,15 @@ from pyssian.classutils import Geometry, DirectoryTree
 
 import numpy as np
 
-from .initialize import load_app_defaults
+from ..initialize import load_app_defaults
 
 DEFAULTS = load_app_defaults()
 GAUSSIAN_INPUT_SUFFIX = DEFAULTS['common']['in_suffix']
 GAUSSIAN_OUTPUT_SUFFIX = DEFAULTS['common']['out_suffix']
 DEFAULT_SUFFIX = (GAUSSIAN_INPUT_SUFFIX,GAUSSIAN_OUTPUT_SUFFIX)
 DEFAULT_MARKER = DEFAULTS['common']['default_marker']
-FORWARD_MARK = DEFAULTS['distortts']['forward_mark']
-REVERSE_MARK = DEFAULTS['distortts']['forward_mark']
+FORWARD_MARK = DEFAULTS['input.distortts']['forward_mark']
+REVERSE_MARK = DEFAULTS['input.distortts']['forward_mark']
 
 class NotFoundError(RuntimeError):
     pass
