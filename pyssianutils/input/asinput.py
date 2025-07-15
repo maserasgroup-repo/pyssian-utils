@@ -1,7 +1,7 @@
-"""
+__doc__ = """
 Takes a gaussian output file and constructs a gaussian input file with its last
-geometry either using a provided input file as template or using a .com file with
-the same name as the provided output file.
+geometry either using a provided input file as template or using a {in_suffix} 
+file with the same name as the provided output file.
 """
 import argparse
 from collections import namedtuple
@@ -259,7 +259,10 @@ def create_hpc_submission_script(files:list[Path],
     with open(script,'w') as F:
         F.write('\n'.join(lines))
 
+
 # Parser and Main Definition
+__doc__ = __doc__.format(in_suffix=GAUSSIAN_INPUT_SUFFIX)
+
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('files',help='Gaussian Output Files',nargs='+')
 group_input = parser.add_mutually_exclusive_group()
@@ -273,18 +276,20 @@ group_input.add_argument('-l','--listfile',
 group_input.add_argument('-r','--folder',
                          dest='is_folder',
                          action='store_true',default=False,
-                         help="""Takes the folder and its subfolder 
+                         help=f"""Takes the folder and its subfolder 
                          hierarchy and creates a new folder with the same 
-                         subfolder structure. Finds all the .out, attempts 
-                         to find their companion .in files and creates the 
+                         subfolder structure. Finds all the 
+                         {GAUSSIAN_OUTPUT_SUFFIX}, attempts to find their 
+                         companion {GAUSSIAN_INPUT_SUFFIX} files and creates the 
                          new inputs in their equivalent locations in the new
                          folder tree structure.""")
 group_marker = parser.add_mutually_exclusive_group()
 group_marker.add_argument('-m','--marker',
                           default=DEFAULT_MARKER,
-                          help="""Text added to the filename to differentiate 
+                          help=f"""Text added to the filename to differentiate 
                           the original file from the newly created one.
-                          For example, myfile.com may become myfile_marker.com""")
+                          For example, myfile{GAUSSIAN_INPUT_SUFFIX} may become 
+                          myfile_marker{GAUSSIAN_INPUT_SUFFIX}""")
 group_marker.add_argument('--no-marker',
                           dest='no_marker',
                           action='store_true',default=False,
@@ -313,9 +318,9 @@ parser.add_argument('-t','--tail',
 parser.add_argument('--as-SP',
                     dest='as_SP',
                     action='store_true', default=False,
-                    help="""Removes the freq, opt and scan keyword if
+                    help=f"""Removes the freq, opt and scan keyword if
                     those existed in the previously existing inputs and 
-                    changes the default marker to 'SP' """)
+                    changes the default marker to {DEFAULT_SP_MARKER} """)
 parser.add_argument('--method',
                     default=None,
                     help="""New method/functional to use. Originally

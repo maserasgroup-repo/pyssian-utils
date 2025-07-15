@@ -229,10 +229,10 @@ def _defaults_set(parameter:str,
     if section is None:
         for s in defaults.sections():
             if parameter in defaults.options(s): 
-                matches.append(s,parameter)
+                matches.append((s,parameter))
     else: 
         if parameter in defaults.options(section): 
-            matches.append(section,parameter)
+            matches.append((section,parameter))
     
     if len(matches) < 0: 
         raise ValueError(f'parameter={parameter} does not exist')
