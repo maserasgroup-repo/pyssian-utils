@@ -8,6 +8,7 @@ import pyssianutils.input
 import pyssianutils.print
 import pyssianutils.toxyz
 import pyssianutils.distortts
+import pyssianutils.submit
 import pyssianutils.others
 
 if __name__ == '__main__': 
@@ -30,8 +31,9 @@ if __name__ == '__main__':
         (pyssianutils.input.asinput, 'asinput'),
         (pyssianutils.print, 'print'),
         (pyssianutils.toxyz, 'toxyz'),
-        (pyssianutils.distorts, 'distort-ts'),
+        (pyssianutils.distortts, 'distort-ts'),
         (pyssianutils.others, 'others'),
+        (pyssianutils.submit,'submit'),
     ]
     for module,modulename in modules: 
         add_parser_as_subparser(subparsers,

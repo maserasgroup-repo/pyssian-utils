@@ -1,8 +1,6 @@
-#!/bin/usr/env python3
-
 """
 Takes a gaussian output file and constructs a gaussian input file with its last
-geometry either using a provided input file as template or using a .in file with
+geometry either using a provided input file as template or using a .com file with
 the same name as the provided output file.
 """
 import argparse
@@ -245,9 +243,9 @@ def create_hpc_submission_script(files:list[Path],
                                  software:str|None='g16',
                                  script:str|Path='submitscript.sh'): 
     # Now create the submit script
-    lines = [ '#!/bin/bash\n',
-            '# Automated Submit Script\n'
-            f'BASEDIR=$PWD;']
+    lines = ['#!/bin/bash\n',
+             '# Automated Submit Script\n'
+             f'BASEDIR=$PWD;']
     
     files = [(f.parent,f) for f in files]
     files.sort(key=lambda x: x[0])
