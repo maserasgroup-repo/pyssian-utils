@@ -6,6 +6,7 @@ from pyssianutils.utils import  (MAINS, create_parser,
 import pyssianutils.initialize
 import pyssianutils.input
 import pyssianutils.print
+import pyssianutils.plot
 import pyssianutils.toxyz
 import pyssianutils.submit
 import pyssianutils.others
@@ -35,6 +36,7 @@ if __name__ == '__main__':
         (pyssianutils.input.asinput, 'asinput'),
         (pyssianutils.input.distortts, 'distort-ts'),
         (pyssianutils.print, 'print'),
+        (pyssianutils.plot, 'plot'),
         (pyssianutils.toxyz, 'toxyz'),
         (pyssianutils.others, 'others'),
         (pyssianutils.submit, 'submit'),

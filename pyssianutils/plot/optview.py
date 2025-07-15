@@ -4,12 +4,14 @@ convergence variables of an optimization.
 """
 
 import argparse
+import warnings
 from pathlib import Path
 
 from pyssian import GaussianOutFile
 from ..initialize import load_app_defaults
 
 try:
+    import matplotlib
     import matplotlib.pyplot as plt
     import pandas as pd 
 except ImportError as e: 
@@ -33,23 +35,28 @@ def get_energy(l502,l508):
 # Parser and main definition
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('ifile',help='Gaussian Output File')
-parser.add_argument('ofile',
+parser.add_argument('ofile',nargs='?',
                     default=Path('screen.png'),
                     help='Output image file')
 parser.add_argument('--width',
                     type=float,default=WIDTH,
-                    help='figure width in inches')
+                    help=f'figure width in inches (default {WIDTH})')
 parser.add_argument('--height',
                     type=float,default=HEIGHT,
-                    help='figure height in inches')
+                    help=f'figure height in inches (default {HEIGHT})')
 parser.add_argument('--dpi',
                     type=int,default=DPI,
-                    help="Figure's Dots Per Inch")
+                    help=f"Figure's Dots Per Inch (default {DPI})")
 parser.add_argument('--interactive',
                     dest='is_interactive',
+                    action='store_true',default=False,
                     help="""Instead of writing to a file open a window showing 
                     the figure""")
-
+parser.add_argument('--browser',
+                    dest='in_browser',
+                    action='store_true',default=False,
+                    help="""Only if --interactive is enabled, it will display
+                    the image in the browser. To exit remember to Ctrl+C""")
 
 def main(
         ifile:str|Path,
@@ -57,13 +64,22 @@ def main(
         width:float=WIDTH,
         height:float=HEIGHT,
         dpi:float=DPI,
-        is_interactive:bool=False
+        is_interactive:bool=False,
+        in_browser:bool=False,
         ):
     
     # We want to delay any errors of optional libraries to the 
     # actual moment when they would be required
     if not LIBRARIES_LOADED: 
         raise LIBRARIES_ERROR
+    
+    if is_interactive and in_browser: 
+        matplotlib.use('WebAgg')
+    elif is_interactive: 
+        warnings.warn("""We have observed that while the figure generated 
+                      when writing to a file maintains all desired proportions
+                      when showing it interactively (not in the browser) 
+                      fontsizes and relative positions are not respected.""")
     
     with GaussianOutFile(ifile) as GOF:
         GOF.read()
@@ -87,7 +103,7 @@ def main(
     ylabels = None
 
     for l502,l508,l103 in zip(links_502,links_508,links_103[1:]): 
-        force,rmsforce,displacement,rmsdisplacement = l103.conversion
+        force,rmsforce,displacement,rmsdisplacement = l103.convergence
         energy = l502.energy
         if l508.energy is not None: 
             energy = l508.energy
@@ -139,7 +155,7 @@ def main(
     x = [i+1 for i in range(len(energies))]
 
     # Energies
-    color_B = DEFAULTS['plot.optview.gridB'].getfloat('color')
+    color_B = DEFAULTS['plot.optview.gridB']['color']
     size_B = DEFAULTS['plot.optview.gridB'].getfloat('scattersize')
     ax_B.plot(x,energies,color=color_B)
     ax_B.scatter(x,energies, facecolor=color_B, s=size_B)
@@ -147,8 +163,8 @@ def main(
     ax_B.set_ylabel('energy, hartree')
 
     # Convergence
-    color_A = DEFAULTS['plot.optview.gridA'].getfloat('color')
-    threshold_color_A = DEFAULTS['plot.optview.gridA'].getfloat('threshold_color')
+    color_A = DEFAULTS['plot.optview.gridA']['color']
+    threshold_color_A = DEFAULTS['plot.optview.gridA']['threshold_color']
     size_A = DEFAULTS['plot.optview.gridA'].getfloat('scattersize')
     xlims = min(x), max(x)
     yvals = [forces,rmsforces,displacements,rmsdisplacements]
@@ -159,7 +175,10 @@ def main(
         ax.plot(x,y,color=color_A)
         ax.scatter(x,y,facecolor=color_A,s=size_A)
 
-    if is_interactive: 
+    if is_interactive:
+        matplotlib.rcParams['figure.figsize'] = fig.get_size_inches()
+        matplotlib.rcParams['figure.dpi'] = dpi
         plt.show(block=True)
     else:
-        fig.savefig(ofile)
+        print(f'writing -> {ofile}')
+        fig.savefig(ofile,dpi=dpi)
