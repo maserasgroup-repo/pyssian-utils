@@ -6,6 +6,7 @@ provided output file. This approach is sometimes termed as "poorman's irc", but
 in no case it substitutes a proper IRC calculation.
 """
 import argparse
+from itertools import starmap
 from pathlib import Path
 from typing import Tuple
 
@@ -14,13 +15,13 @@ from pyssian.classutils import Geometry, DirectoryTree
 
 import numpy as np
 
-from .initialize import check_initialization, load_app_defaults
+from .initialize import load_app_defaults
 
 DEFAULTS = load_app_defaults()
-GAUSSIAN_INPUT_SUFFIX = DEFAULTS['distortts']['in_suffix']
-GAUSSIAN_OUTPUT_SUFFIX = DEFAULTS['distortts']['out_suffix']
+GAUSSIAN_INPUT_SUFFIX = DEFAULTS['common']['in_suffix']
+GAUSSIAN_OUTPUT_SUFFIX = DEFAULTS['common']['out_suffix']
 DEFAULT_SUFFIX = (GAUSSIAN_INPUT_SUFFIX,GAUSSIAN_OUTPUT_SUFFIX)
-DEFAULT_MARKER = DEFAULTS['distortts']['default_marker']
+DEFAULT_MARKER = DEFAULTS['common']['default_marker']
 FORWARD_MARK = DEFAULTS['distortts']['forward_mark']
 REVERSE_MARK = DEFAULTS['distortts']['forward_mark']
 
@@ -161,18 +162,16 @@ def prepare_filepaths_nofolder(files:list[str|Path],
 
     return templates, geometries, (newfiles_f,newfiles_r)
 
-def prepare_suffix(in_suffix:str,out_suffix:str) -> tuple[str]: 
+def prepare_suffix(suffix:str) -> str: 
     """
-    Ensures proper formatting of the suffixes used for gaussian inputs and 
-    outputs
+    Ensures proper formatting of the suffixes
     """
-    if in_suffix is not None and in_suffix.startswith('.'):
-        in_suffix = in_suffix.rstrip()
+    if suffix.startswith('.'):
+        suffix = suffix.rstrip()
+    else: 
+        suffix = f'.{suffix.strip()}'
 
-    if out_suffix is not None and out_suffix.startswith('.'):
-        out_suffix = out_suffix.rstrip()
-
-    return in_suffix,out_suffix
+    return suffix
 
 def apply_distortions(gau_log:str|Path,factor:float=0.13) -> Tuple[Geometry,Geometry]:
 
@@ -191,7 +190,7 @@ def apply_distortions(gau_log:str|Path,factor:float=0.13) -> Tuple[Geometry,Geom
     return geom_f, geom_r
 
 # Parser and Main definition
-__doc__ = __doc__.format_map(DEFAULTS['distortts'])
+__doc__ = __doc__.format(in_suffix=GAUSSIAN_INPUT_SUFFIX)
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('files',help='Gaussian Output Files',nargs='+')
@@ -255,11 +254,9 @@ def main(
          is_inplace:bool=False,
          do_overwrite:bool=False,
          ):
-    
-    check_initialization()
 
     # Ensure proper suffixes
-    in_suffix,out_suffix = prepare_suffix(*suffix)
+    in_suffix,out_suffix = starmap(prepare_suffix,suffix)
 
     templates,geometries,newfiles = prepare_filepaths(files,
                                                       outdir,

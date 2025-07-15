@@ -49,6 +49,9 @@ if __name__ == '__main__':
         kwargs = dict(args._get_kwargs())
         command = kwargs.pop('command')
         
+        if command not in ['init','clean']: 
+            pyssianutils.initialize.check_initialization()
+        
         if kwargs:
             MAINS[command](**kwargs)
         else:

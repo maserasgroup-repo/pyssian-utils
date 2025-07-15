@@ -11,6 +11,12 @@ from pyssian.chemistryutils import is_method
 from ..utils import (thermochemistry, potential_energy, 
                      write_2_file, ALLOWEDMETHODS)
 
+from ..initialize import load_app_defaults
+
+# Load app defaults
+DEFAULTS = load_app_defaults()
+NUMBER_FMT = DEFAULTS['print']['energy_hartree_fmt']
+
 # Utility Functions
 def guess_method(GOF:GaussianOutFile): 
     commandline = GOF.get_links(1)[-1].commandline
@@ -165,7 +171,7 @@ def main(files:list[str],
     name_format = f'{{: <{n}}}'
 
     # Values format
-    number_fmt = '{: 03.9f}'
+    number_fmt = NUMBER_FMT
     largest_value = len(number_fmt.format(10000))
     value_fmt = f'{{: ^{largest_value}}}'
     spacer = '    '

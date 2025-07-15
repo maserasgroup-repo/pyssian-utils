@@ -14,11 +14,12 @@ from functools import partial
 from pyssian import GaussianOutFile, GaussianInFile
 from pyssian.classutils import Geometry
 
-# typing imports
-import argparse
+from .initialize import load_app_defaults
 
-GAUSSIAN_INPUT_SUFFIX = '.com'
-GAUSSIAN_OUTPUT_SUFFIX = '.log'
+DEFAULTS = load_app_defaults()
+GAUSSIAN_IN_SUFFIXES = DEFAULTS['common']['gaussian_in_suffixes'][1:-1].split(',')
+GAUSSIAN_OUT_SUFFIXES = DEFAULTS['common']['gaussian_out_suffixes'][1:-1].split(',')
+DEFAULT_OUTFILE = Path(DEFAULTS['toxyz']['outfile'])
 
 # Utility Functions
 def select_input_files(files,is_listfile=False): 
@@ -28,19 +29,6 @@ def select_input_files(files,is_listfile=False):
     else:
         inputfiles = files
     return list(sorted(inputfiles))
-def select_suffix(suffix): 
-    """
-    Ensures proper formatting of the suffixes used for gaussian inputs and 
-    outputs and changes the values of the global variables GAUSSIAN_INPUT_SUFFIX,
-    GAUSSIAN_OUTPUT_SUFFIX accordingly
-    """
-    
-    if suffix is None:
-        return GAUSSIAN_INPUT_SUFFIX
-    in_suffix = suffix
-    if in_suffix.startswith('.'): 
-        return in_suffix.rstrip()
-    return f'.{in_suffix}'
 def info_from_gau_output(filepath,step=None): 
     with GaussianOutFile(filepath,[1,101,202]) as GOF:
         GOF.update()
@@ -57,11 +45,11 @@ def info_from_gau_input(filepath):
     return geom
 def extract_geom(filepath,step=None): 
     suffix = Path(filepath).suffix
-    if suffix in ['.in','.com','.gjf']: 
+    if suffix in GAUSSIAN_IN_SUFFIXES: 
         return info_from_gau_input(filepath)
-    if suffix in ['.log','.out'] and step is None:
+    if suffix in GAUSSIAN_OUT_SUFFIXES and step is None:
         return info_from_gau_output(filepath)
-    elif suffix in ['.log','.out']:
+    elif suffix in GAUSSIAN_OUT_SUFFIXES:
         return info_from_gau_output(filepath,step)
     if suffix == '.xyz': 
         return Geometry.from_xyz(filepath)
@@ -78,7 +66,7 @@ parser.add_argument('-l','--listfile',
                     provided as a list of gaussian output files""")
 parser.add_argument('-o','--outfile',
                     type=Path,
-                    default=Path('all_geometries.xyz'),
+                    default=DEFAULT_OUTFILE,
                     help="""Name of the xyz file with all the provided 
                     geometries sorted by filename""")
 parser.add_argument('--step',
@@ -88,11 +76,11 @@ parser.add_argument('--step',
                     provided. 'initial geometry'='1'""")
 
 def main(files:list[str|Path],
-         outfile:Path|str,
+         outfile:Path=DEFAULT_OUTFILE,
          is_listfile:bool=False,
          step:int|None=None
          ):
-    
+
     inputfiles = select_input_files(files,is_listfile)
 
     xyz = []

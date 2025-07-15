@@ -16,14 +16,14 @@ from itertools import groupby
 from pyssian.classutils import DirectoryTree
 from pyssian.gaussianclasses import GaussianInFile
 
-from ..initialize import load_app_defaults, check_initialization
+from ..initialize import load_app_defaults
 
 # Load app defaults
 DEFAULTS = load_app_defaults()
-GAUSSIAN_INPUT_SUFFIX = DEFAULTS['submit.custom']['in_suffix']
-GAUSSIAN_OUTPUT_SUFFIX = DEFAULTS['submit.custom']['out_suffix']
-SOFTWARE_DEFAULT = DEFAULTS['submit.custom']['software']
-SCRIPT_DEFAULT = DEFAULTS['submit.custom']['script_name']
+GAUSSIAN_INPUT_SUFFIX = DEFAULTS['common']['in_suffix']
+GAUSSIAN_OUTPUT_SUFFIX = DEFAULTS['common']['out_suffix']
+DEFAULT_SOFTWARE = DEFAULTS['submit.custom']['software']
+DEFAULT_SCRIPT = DEFAULTS['submit.custom']['script_name']
 
 Queue = namedtuple('Queue','nprocesors memory'.split())
 QUEUES = dict() 
@@ -160,16 +160,23 @@ def prepare_filepaths(folder:Path|str,
     return nomatch_inputs,matching_inputs
 
 # Define Parser and main
-__doc__ = __doc__.format_map(DEFAULTS['submit.custom'])
+__doc__ = __doc__.format(in_suffix=GAUSSIAN_INPUT_SUFFIX,
+                         out_suffix=GAUSSIAN_OUTPUT_SUFFIX,
+                         script_name=DEFAULT_SCRIPT,
+                         )
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('folder',
                     nargs='?',default=Path.cwd(),
                     help="""Folder where the files are located. If not provided
                     it will use the current working directory.""")
+parser.add_argument('--outfile','-o',
+                    dest='scriptname',
+                    default=DEFAULT_SCRIPT,
+                    help='name of the output file')
 parser.add_argument('--software',
                     choices=['g09','g16'],
-                    default=SOFTWARE_DEFAULT)
+                    default=DEFAULT_SOFTWARE)
 parser.add_argument('--recursive','-r',
                     action='store_true', default=False,
                     help="""If enabled it will recursively search in the 
@@ -191,14 +198,12 @@ parser.add_argument('--norun',
 
 def main(
          folder:Path,
-         software:str=SOFTWARE_DEFAULT,
+         software:str=DEFAULT_SOFTWARE,
          suffix:tuple[str|None]=(None,None),
          recursive:bool=False,
          as_comments:bool=False,
          no_run:bool=False,
-         scriptname:str=SCRIPT_DEFAULT):
-
-    check_initialization() 
+         scriptname:str=DEFAULT_SCRIPT):
 
     in_suffix,out_suffix = select_suffix(*suffix)
 

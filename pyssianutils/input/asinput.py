@@ -5,16 +5,23 @@ the same name as the provided output file.
 """
 import argparse
 from collections import namedtuple
-from itertools import groupby
+from itertools import groupby,starmap
 from pathlib import Path
 
 from pyssian import GaussianOutFile, GaussianInFile
 from pyssian.classutils import Geometry, DirectoryTree
 
-from ..initialize import check_initialization
+from ..initialize import check_initialization, load_app_defaults
 
-GAUSSIAN_INPUT_SUFFIX = '.com'
-GAUSSIAN_OUTPUT_SUFFIX = '.log'
+# Load app defaults
+DEFAULTS = load_app_defaults()
+GAUSSIAN_INPUT_SUFFIX = DEFAULTS['common']['in_suffix']
+GAUSSIAN_OUTPUT_SUFFIX = DEFAULTS['common']['out_suffix']
+DEFAULT_SUFFIX = (GAUSSIAN_INPUT_SUFFIX,GAUSSIAN_OUTPUT_SUFFIX)
+DEFAULT_MARKER = DEFAULTS['common']['default_marker']
+DEFAULT_SP_MARKER = DEFAULTS['input.asinput']['sp_marker']
+DEFAULT_SOFTWARE = DEFAULTS['input.asinput']['software']
+DEFAULT_SCRIPTNAME = DEFAULTS['input.asinput']['script_name']
 
 Queue = namedtuple('Queue','nprocesors memory'.split())
 QUEUES = {4:Queue(4,8),8:Queue(8,24),
@@ -200,31 +207,21 @@ def select_marker(marker:str|None,
         marker = ''
     elif marker is None:
         if as_SP:
-            marker = 'SP'
+            marker = DEFAULT_SP_MARKER
         else:
-            marker = 'new'
+            marker = DEFAULT_MARKER
 
     return marker
-def select_suffix(in_suffix:str|None,out_suffix:str|None) -> tuple[str]: 
+def prepare_suffix(suffix:str) -> str: 
     """
-    Ensures proper formatting of the suffixes used for gaussian inputs and 
-    outputs and changes the values of the global variables GAUSSIAN_INPUT_SUFFIX,
-    GAUSSIAN_OUTPUT_SUFFIX accordingly
+    Ensures proper formatting of the suffixes used for gaussian inputs
     """
-    if in_suffix is not None and in_suffix.startswith('.'):
-        in_suffix = in_suffix.rstrip()
-    elif in_suffix is None: 
-        in_suffix = GAUSSIAN_INPUT_SUFFIX
-    else:
-        in_suffix = in_suffix
+    if suffix.startswith('.'):
+        suffix = suffix.rstrip()
+    else: 
+        suffix = f'.{suffix.strip()}'
 
-    if out_suffix is not None and out_suffix.startswith('.'):
-        out_suffix = out_suffix.rstrip()
-    elif out_suffix is None: 
-        out_suffix = GAUSSIAN_OUTPUT_SUFFIX
-    else:
-        out_suffix = out_suffix
-    return in_suffix,out_suffix
+    return suffix
 def prepare_tail(filepath:Path|None) -> str|None:
     if filepath is None: 
         return None
@@ -267,41 +264,41 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('files',help='Gaussian Output Files',nargs='+')
 group_input = parser.add_mutually_exclusive_group()
 group_input.add_argument('-l','--listfile',
-                            dest='is_listfile',
-                            action='store_true',default=False,
-                            help="""When enabled instead of considering the 
-                            files provided as the gaussian output files 
-                            considers the file provided as a list of gaussian
-                            output files""")
+                         dest='is_listfile',
+                         action='store_true',default=False,
+                         help="""When enabled instead of considering the 
+                         files provided as the gaussian output files 
+                         considers the file provided as a list of gaussian
+                         output files""")
 group_input.add_argument('-r','--folder',
-                            dest='is_folder',
-                            action='store_true',default=False,
-                            help="""Takes the folder and its subfolder 
-                            hierarchy and creates a new folder with the same 
-                            subfolder structure. Finds all the .out, attempts 
-                            to find their companion .in files and creates the 
-                            new inputs in their equivalent locations in the new
-                            folder tree structure.""")
+                         dest='is_folder',
+                         action='store_true',default=False,
+                         help="""Takes the folder and its subfolder 
+                         hierarchy and creates a new folder with the same 
+                         subfolder structure. Finds all the .out, attempts 
+                         to find their companion .in files and creates the 
+                         new inputs in their equivalent locations in the new
+                         folder tree structure.""")
 group_marker = parser.add_mutually_exclusive_group()
 group_marker.add_argument('-m','--marker',
-                        default='new',
-                        help="""Text added to the filename to differentiate 
-                        the original file from the newly created one.
-                        For example, myfile.com may become myfile_marker.com""")
+                          default=DEFAULT_MARKER,
+                          help="""Text added to the filename to differentiate 
+                          the original file from the newly created one.
+                          For example, myfile.com may become myfile_marker.com""")
 group_marker.add_argument('--no-marker',
-                        dest='no_marker',
-                        action='store_true',default=False,
-                        help="The file stems are kept")
+                          dest='no_marker',
+                          action='store_true',default=False,
+                          help="The file stems are kept")
 group_output = parser.add_mutually_exclusive_group()
 group_output.add_argument('-o','--outdir',
-                            default=None,
-                            help="""Where to create the new files, defaults 
-                            to the current directory""")
+                          default=None,
+                          help="""Where to create the new files, defaults 
+                          to the current directory""")
 group_output.add_argument('--inplace',
-                            dest='is_inplace',
-                            action='store_true',default=False,
-                            help="""Creates the new files in the same 
-                            locations as the files provided by the user""")
+                          dest='is_inplace',
+                          action='store_true',default=False,
+                          help="""Creates the new files in the same 
+                          locations as the files provided by the user""")
 parser.add_argument('-ow','--overwrite',
                     dest='do_overwrite',
                     action='store_true',default=False,
@@ -344,47 +341,59 @@ parser.add_argument('--add-text',
                     the command line. Recommended: 
                     "keyword=(value1,keyword2=value2)" """)
 parser.add_argument('--suffix',
-                    default=(None,None),nargs=2,
-                    help="""Input and output suffix used for gaussian files""") 
-parser.add_argument('--no-submit',
-                    dest='do_submit',
-                    default=True,action='store_false',
-                    help="""Do not create a submitscript.sh file in the 
-                    current directory""")
+                    default=DEFAULT_SUFFIX,nargs=2,
+                    help="""Input and output suffix used for gaussian files""")
+script_group = parser.add_mutually_exclusive_group()
+if DEFAULTS['input.asinput'].getboolean('generate_script'): 
+    script_group.add_argument('--no-submit',
+                            dest='do_submit',
+                            default=True,action='store_false',
+                            help=f"""Do not create a {DEFAULT_SCRIPTNAME} file in the 
+                            current directory""")
+else:
+    script_group.add_argument('--submit',
+                            dest='do_submit',
+                            default=False,action='store_true',
+                            help=f"""Do not create a {DEFAULT_SCRIPTNAME} file in the 
+                            current directory""")
+script_group.add_argument('--scriptname',
+                        dest='script_name',
+                        default=DEFAULT_SCRIPTNAME,
+                        help=f"""Name of the script generated to submit the
+                        calculations""")
 parser.add_argument('--software',
-                    choices=['g09','g16'],default='g09',
-                    help="""Version of gaussian to which the calculations
+                    choices=['g09','g16'],default=DEFAULT_SOFTWARE,
+                    help=f"""Version of gaussian to which the calculations
                     will be sent. Only affects the submission script if 
                     generated. 
-                    'qs {gxx}.queue.q file.in' (Default: g09)""")
+                    'qs {DEFAULT_SOFTWARE}.queue.q file{GAUSSIAN_INPUT_SUFFIX}'""")
 
 def main(
          files:list[str|Path],
          outdir:str|Path|None=None,
-         suffix:tuple[str|None]=(None,None),
+         suffix:tuple[str]=DEFAULT_SUFFIX,
          method:str|None=None,
          solvent:str|None=None,
          solvation_model:str|None=None,
          add_text:str|None=None,
          is_folder:bool=False,
          is_listfile:bool=False,
-         marker:str|None=None,
+         marker:str|None=None, # It should default to None, app defaults are later
          as_SP:bool=False,
          no_marker:bool=False,
          is_inplace:bool=False,
          do_overwrite:bool=False,
          tail:Path|str|None=None,
          do_submit:bool=False,
-         software:str|None='g16',
+         software:str|None=DEFAULT_SOFTWARE,
+         script_name:str=DEFAULT_SCRIPTNAME,
          ):
-    
-    check_initialization()
 
     # Prepare Tail
     tail = prepare_tail(tail)
     
     # Ensure proper suffixes
-    in_suffix,out_suffix = select_suffix(*suffix)
+    in_suffix,out_suffix = starmap(prepare_suffix,suffix)
 
     templates,geometries,newfiles = prepare_filepaths(files,
                                                       outdir,
@@ -464,9 +473,8 @@ def main(
 
         gif.write(ofile)
         final_files.append(ofile)
-    
 
     if do_submit:
         create_hpc_submission_script(final_files,
                                      software,
-                                     'submitscript.sh')
+                                     script_name)

@@ -4,16 +4,14 @@ convergence Y/N, Cartesian forces value and Geometry index of the geometry in
 the file. If no variable is provided nor it is a scan calculation it will 
 print the variables that may be tracked and exit.
 """
+import argparse
 
-import os
 import re
 from pathlib import Path
 
-
 from pyssian import GaussianOutFile
 from ..utils import write_2_file
-
-import argparse
+from ..initialize import load_app_defaults
 
 # Typing imports
 from typing import Protocol
@@ -38,39 +36,65 @@ class Derivative(Protocol):
     dXt:float|None
     new:float|None
 
+# Defaults and Globals
 RE_CARTESIAN = re.compile(r'Cartesian.Forces\:.*Max\s*([0-9|\.]*).RMS\s*[0-9|\.]*')
+
+DEFAULTS = load_app_defaults()
+VALUE_FMT = DEFAULTS['others.track']['value_fmt']
+DEDX_FMT = DEFAULTS['others.track']['dEdX_fmt']
+FORCES_FMT = DEFAULTS['others.track']['forces_fmt']
 
 # Utility Functions
 def get_differential(Link:Link103,variable:Parameter):
     for item in Link.derivatives:
         if item.Var == variable.Name:
-            return item.dEdX
+            break
     else:
         raise ValueError(f'Variable {variable.Name} not Found in {Link.__repr__()}')
+    try:
+        float(item.dEdX)
+    except ValueError: 
+        return item.dEdX
+    else:
+        return DEDX_FMT.format(float(item.dEdX))
 def get_parameter_value(Link:Link103,variable:Parameter):
     for item in Link.parameters:
         if item.Name == variable.Name:
-            return item.Value
+            break
     else:
         raise ValueError(f'Variable {variable.Name} not Found in {Link.__repr__()}')
+    try:
+        float(item.Value)
+    except ValueError: 
+        return item.Value
+    else:
+        return VALUE_FMT.format(float(item.Value))
 def get_value_from_derivatives(link:Link103,variable:Parameter):
     for item in link.derivatives:
         if item.Var == variable.Name:
-            return item.new
+            break
     else:
         raise ValueError(f'Variable {variable.Name} not Found in {link.__repr__()}')
+    return item.new
 def get_convergence(link:Link103):
     for item in link.convergence:
         if item.Item =='Maximum Force':
-            if item.Converged:
-                return 'YES'
-            return 'NO'
+            break
     else:
         raise RuntimeError('No Maximum Force Convergence item found')
+    if item.Converged:
+        return 'YES'
+    return 'NO'
 def get_cartesian_forces_max(link:Link716):
     re_match = RE_CARTESIAN.findall(link.text)
-    if re_match:
-        return re_match[0]
+    if not re_match:
+        return ''
+    try: 
+        float(re_match[0])
+    except ValueError: 
+        return re_match
+    else:
+        return FORCES_FMT.format(float(re_match[0]))
 
 # Parser and Main definition
 parser = argparse.ArgumentParser(description=__doc__)
@@ -124,7 +148,7 @@ def main(
     )
 
     # Format for the numbers
-    txt = '{: ^10}\t{: ^10}\t{: ^10}\t{: ^10}\t{: ^10}\t{: ^10}' # {: 03.9f}
+    txt = '{: ^10}\t{: ^10}\t{: ^10}\t{: ^10}\t{: ^10}\t{: ^10}'
 
     if scan: 
         link = GOF.get_links(103)[0]

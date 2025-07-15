@@ -7,6 +7,11 @@ from pathlib import Path
 from pyssian import GaussianOutFile
 from pyssian.chemistryutils import is_method
 from ..utils import potential_energy, write_2_file, ALLOWEDMETHODS
+from ..initialize import load_app_defaults
+
+# Load app defaults
+DEFAULTS = load_app_defaults()
+NUMBER_FMT = DEFAULTS['print']['energy_hartree_fmt']
 
 # Utility functions
 def guess_method(GOF:GaussianOutFile): 
@@ -71,7 +76,7 @@ def main(
          outfile:Path|str|None=None,
          verbose:bool=False
          ):
-
+    
     assert method in ALLOWEDMETHODS+[None]
 
     if is_listfile:
@@ -91,7 +96,7 @@ def main(
     spacer = '    '
 
     # Format for the numbers
-    number_fmt = '{: 03.9f}'
+    number_fmt = NUMBER_FMT
     largest_value = len(number_fmt.format(10000))
     value_fmt = f'{{: ^{largest_value}}}'
 

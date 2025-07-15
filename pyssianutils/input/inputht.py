@@ -9,10 +9,18 @@ import argparse
 
 from pyssian import GaussianOutFile, GaussianInFile
 from pyssian.classutils import Geometry
-from ..initialize import check_initialization
+from ..initialize import check_initialization, load_app_defaults
 
-GAUSSIAN_INPUT_SUFFIX = '.com'
-GAUSSIAN_OUTPUT_SUFFIX = '.log'
+# Load app defaults
+DEFAULTS = load_app_defaults()
+GAUSSIAN_INPUT_SUFFIX = DEFAULTS['common']['in_suffix']
+GAUSSIAN_OUTPUT_SUFFIX = DEFAULTS['common']['out_suffix']
+DEFAULT_SUFFIX = (GAUSSIAN_INPUT_SUFFIX,GAUSSIAN_OUTPUT_SUFFIX)
+DEFAULT_MARKER = DEFAULTS['common']['default_marker']
+GAUSSIAN_IN_SUFFIXES = DEFAULTS['common']['gaussian_in_suffixes'][1:-1].split(',')
+GAUSSIAN_OUT_SUFFIXES = DEFAULTS['common']['gaussian_out_suffixes'][1:-1].split(',')
+DEFAULT_CHARGE = DEFAULTS['input.inputht'].getint('charge')
+DEFAULT_SPIN = DEFAULTS['input.inputht'].getint('spin')
 
 # Utility Functions
 def select_input_files(files:list[Path|str],is_listfile:bool=False) -> list[Path]: 
@@ -22,19 +30,16 @@ def select_input_files(files:list[Path|str],is_listfile:bool=False) -> list[Path
     else:
         inputfiles = [Path(f) for f in files]
     return inputfiles
-def select_suffix(suffix:str|None): 
+def prepare_suffix(suffix:str) -> str: 
     """
-    Ensures proper formatting of the suffixes used for gaussian inputs and 
-    outputs and changes the values of the global variables GAUSSIAN_INPUT_SUFFIX,
-    GAUSSIAN_OUTPUT_SUFFIX accordingly
+    Ensures proper formatting of the suffixes used for gaussian inputs
     """
-    
-    if suffix is None:
-        return GAUSSIAN_INPUT_SUFFIX
-    in_suffix = suffix
-    if in_suffix.startswith('.'): 
-        return in_suffix.rstrip()
-    return f'.{in_suffix}'
+    if suffix.startswith('.'):
+        suffix = suffix.rstrip()
+    else: 
+        suffix = f'.{suffix.strip()}'
+
+    return suffix
 
 def prepare_header(filepath:Path|None):
     
@@ -89,11 +94,11 @@ def extract_geom_spin_and_charge(filepath:str|Path,
                                  spin:int|None=None,
                                  step:int|None=None): 
     suffix = Path(filepath).suffix
-    if suffix in ['.in','.com','.gjf']: 
+    if suffix in GAUSSIAN_IN_SUFFIXES: 
         return info_from_gau_input(filepath)
-    if suffix in ['.log','.out'] and step is None:
+    if suffix in GAUSSIAN_OUT_SUFFIXES and step is None:
         return info_from_gau_output(filepath)
-    elif suffix in ['.log','.out']:
+    elif suffix in GAUSSIAN_OUT_SUFFIXES:
         return info_from_gau_output(filepath,step)
     if suffix == '.xyz': 
         return Geometry.from_xyz(filepath), charge, spin
@@ -110,10 +115,11 @@ parser.add_argument('-l','--listfile',
                     provided as a list of gaussian output files""",)
 group_marker = parser.add_mutually_exclusive_group()
 group_marker.add_argument('-m','--marker',
-                        default='new',
-                        help="""Text added to the filename to differentiate 
+                        default=DEFAULT_MARKER,
+                        help=f"""Text added to the filename to differentiate 
                         the original file from the newly created one.
-                        For example, myfile.com may become myfile_marker.com""")
+                        For example, myfile{GAUSSIAN_INPUT_SUFFIX} may become 
+                        myfile_marker{GAUSSIAN_INPUT_SUFFIX}""")
 group_marker.add_argument('--no-marker',
                         action='store_true',
                         default=False,
@@ -139,15 +145,16 @@ parser.add_argument('-T','--tail',
                     help="""Tail File that contains the extra options, such as 
                     pseudopotentials, basis sets """)
 parser.add_argument('--charge',
-                    default=0,
+                    default=DEFAULT_CHARGE,
                     type=int,
                     help="""Net charge of the whole system""")
 parser.add_argument('--spin',
-                    default=1,
+                    default=DEFAULT_SPIN,
                     type=int,
                     help="""spin of the system""")
-parser.add_argument('--suffix',default=None,nargs=2,help="""Input and output 
-                    suffix used for gaussian files""")
+parser.add_argument('--suffix',
+                    default=DEFAULT_SUFFIX,
+                    help='Input suffix used for gaussian files, e.g. ".com"')
 
 def main(files:list[str|Path],
          is_listfile:bool,
@@ -156,13 +163,11 @@ def main(files:list[str|Path],
          header:Path|str,
          tail:Path|str,
          suffix:str,
-         charge:int=0,
-         spin:int=1,
+         charge:int=DEFAULT_CHARGE,
+         spin:int=DEFAULT_SPIN,
          step:None|int=None,
          no_marker:bool=False,
          ):
-    
-    check_initialization()
 
     inputfiles = select_input_files(files,is_listfile)
 
@@ -174,7 +179,7 @@ def main(files:list[str|Path],
     outdir = Path(outdir)
     header = prepare_header(header)
     tail = prepare_tail(tail)
-    suffix = select_suffix(suffix)
+    suffix = prepare_suffix(suffix)
 
     template = f'{header}\n\n{{title}}\n\n{{charge}} {{spin}}\n{{coords}}\n\n{tail}\n\n\n'
 
@@ -182,7 +187,7 @@ def main(files:list[str|Path],
         print(ifile)
         infilepath = Path(ifile)
         stem = infilepath.stem
-        ofile = outdir/f'{stem}{marker}{suffix}'
+        ofile = outdir/f'{stem}_{marker}{suffix}'
         geom,charge,spin = extract_geom_spin_and_charge(infilepath,
                                                         charge=charge,
                                                         spin=spin,
