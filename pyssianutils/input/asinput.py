@@ -9,9 +9,10 @@ from itertools import groupby,starmap
 from pathlib import Path
 
 from pyssian import GaussianOutFile, GaussianInFile
-from pyssian.classutils import Geometry, DirectoryTree
+from pyssian.classutils import Geometry
 
 from ..initialize import load_app_defaults
+from ..utils import DirectoryTree
 
 # Load app defaults
 DEFAULTS = load_app_defaults()

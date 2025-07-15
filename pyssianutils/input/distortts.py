@@ -11,11 +11,12 @@ from pathlib import Path
 from typing import Tuple
 
 from pyssian import GaussianOutFile, GaussianInFile
-from pyssian.classutils import Geometry, DirectoryTree
+from pyssian.classutils import Geometry
 
 import numpy as np
 
 from ..initialize import load_app_defaults
+from ..utils import DirectoryTree
 
 DEFAULTS = load_app_defaults()
 GAUSSIAN_INPUT_SUFFIX = DEFAULTS['common']['in_suffix']

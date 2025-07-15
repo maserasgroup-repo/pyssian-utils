@@ -13,10 +13,10 @@ from pathlib import Path
 from collections import namedtuple
 from itertools import groupby
 
-from pyssian.classutils import DirectoryTree
 from pyssian.gaussianclasses import GaussianInFile
 
 from ..initialize import load_app_defaults
+from ..utils import DirectoryTree
 
 # Load app defaults
 DEFAULTS = load_app_defaults()
@@ -141,7 +141,7 @@ def prepare_filepaths(folder:Path|str,
     """
     # Prepare folder structure
     if recursive:
-        dir = DirectoryTree(folder)
+        dir = DirectoryTree(folder,in_suffix,out_suffix)
         outputs = list(dir.outfiles)
         inputs = list(dir.infiles)
     else:

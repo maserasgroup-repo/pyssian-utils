@@ -2,15 +2,14 @@
 This module provides a set of functions with general utilities. as 
 well as the basic variables for registering the subparsers and main functions
 """
-
+import os
 import argparse
 from pathlib import Path
 from ._version import __version__
 from pyssian.gaussianclasses import GaussianOutFile
 
-# Core functions for pyssianutils command line inner workings
-MAINS = dict() 
-
+# Core functions/Gobals for pyssianutils command line inner workings
+MAINS = dict()
 def register_main(f,name=None):
     # assume all functions that will be be decorated 
     # to create the corresponding MAINS are 
@@ -92,6 +91,91 @@ def add_parser_as_subparser(subparsers:argparse._SubParsersAction,
 
 # Other functions utility variables
 ALLOWEDMETHODS = ['oniom','mp2','mp2scs','mp4','ccsdt','default']
+
+# Class utils
+class DirectoryTree(object):
+    """
+    Class that provides recursive file iteration search and iteration.
+    """
+    def __init__(self,path,in_suffix,out_suffix):
+        self.root = Path(path)
+        self.cwd = Path(os.getcwd())
+        self.newroot = self.root
+        self.in_suffix = in_suffix
+        self.out_suffix = out_suffix
+    def set_newroot(self,newroot):
+        self.newroot = Path(newroot)
+
+    def newpath(self,path):
+        """
+        Takes a path rooted to the previous root and prepares it to be
+        rooted in the new root.
+        """
+        return self.newroot.joinpath(path.relative_to(self.root))
+
+    @staticmethod
+    def RecursiveFileSystemGenerator(path,key=None):
+        """
+        Generator that traverses the filesystem in depth first order and yields
+        the paths that satisfy the key function condition. If no key function
+        is provided, returns all folders and items. The first yield is always
+        None, and the second yield is always the path value if it satisfies the
+        key condition.
+
+        Parameters
+        ----------
+        path : Path
+            Path pointing to a directory.
+        key : function
+            A function that returns a boolean. Used in a similar function as
+            the 'sorted' python builtin.
+        """
+        cls = DirectoryTree
+        if key is None:
+            key=lambda x: True
+        yield None
+        if key(path):
+            yield path
+        if path.is_dir():
+            for subpath in path.iterdir():
+                subgen =cls.RecursiveFileSystemGenerator(subpath,key=key)
+                _ = next(subgen)
+                for i in subgen:
+                    yield i
+
+    @property
+    def folders(self):
+        generator = self.RecursiveFileSystemGenerator
+        _iter = generator(self.root,key=lambda x: x.is_dir())
+        _  = next(_iter)
+        return _iter
+
+    @property
+    def infiles(self):
+        def f_in(x):
+            Out = False
+            if x.exists() and x.suffix == self.in_suffix:
+                Out = True
+            return Out
+        _iter = self.RecursiveFileSystemGenerator(self.root,key=f_in)
+        _  = next(_iter)
+        return _iter
+
+    @property
+    def outfiles(self):
+        def f_out(x):
+            Out = False
+            if x.exists() and x.suffix == self.out_suffix:
+                Out = True
+            return Out
+        _iter = self.RecursiveFileSystemGenerator(self.root,key=f_out)
+        _  = next(_iter)
+        return _iter
+
+    def create_folders(self):
+        for folder in self.folders:
+            newpath = self.newpath(folder)
+            newpath.mkdir(parents=True,exist_ok=True)
 
 # General Utils
 def write_2_file(filepath:Path):
