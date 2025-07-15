@@ -9,7 +9,7 @@ import argparse
 
 from pyssian import GaussianOutFile, GaussianInFile
 from pyssian.classutils import Geometry
-from ..initialize import check_initialization, load_app_defaults
+from ..initialize import load_app_defaults
 
 # Load app defaults
 DEFAULTS = load_app_defaults()

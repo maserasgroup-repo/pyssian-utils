@@ -5,7 +5,6 @@ the gaussian input and output suffixes.
 import argparse
 
 from ..utils import add_parser_as_subparser
-from ..initialize import check_initialization
 
 from . import custom
 
@@ -19,8 +18,6 @@ add_parser_as_subparser(subparsers,
 def main(
          submit_mode:str|None=None,
          **kwargs):
-
-    check_initialization()
 
     if submit_mode == 'custom': 
         custom.main(**kwargs)

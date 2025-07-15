@@ -4,7 +4,6 @@ Gathers the different output printing options
 import argparse
 
 from ..utils import add_parser_as_subparser
-from ..initialize import check_initialization
 
 from . import potential
 from . import thermo
@@ -25,8 +24,6 @@ add_parser_as_subparser(subparsers,
 def main(
         print_mode:str|None=None,
         **kwargs):
-
-    check_initialization()
 
     if print_mode == 'potential': 
         potential.main(**kwargs)

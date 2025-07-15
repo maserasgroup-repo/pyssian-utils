@@ -4,7 +4,6 @@ Gathers the other more specific utilities
 import argparse
 
 from ..utils import add_parser_as_subparser
-from ..initialize import check_initialization
 
 from . import track
 from . import cubestddft
@@ -21,8 +20,6 @@ add_parser_as_subparser(subparsers,
 def main(
          other_command:str|None=None,
          **kwargs):
-
-    check_initialization()
 
     if other_command == 'track': 
         track.main(**kwargs)
