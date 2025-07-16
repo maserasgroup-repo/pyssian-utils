@@ -176,8 +176,6 @@ def main(
         ax.scatter(x,y,facecolor=color_A,s=size_A)
 
     if is_interactive:
-        matplotlib.rcParams['figure.figsize'] = fig.get_size_inches()
-        matplotlib.rcParams['figure.dpi'] = dpi
         plt.show(block=True)
     else:
         print(f'writing -> {ofile}')

@@ -3,6 +3,7 @@ This module provides a set of functions with general utilities. as
 well as the basic variables for registering the subparsers and main functions
 """
 import os
+import re
 import argparse
 from pathlib import Path
 from ._version import __version__
@@ -91,6 +92,7 @@ def add_parser_as_subparser(subparsers:argparse._SubParsersAction,
 
 # Other functions utility variables
 ALLOWEDMETHODS = ['oniom','mp2','mp2scs','mp4','ccsdt','default']
+SCFCYCLE_PATTERN = re.compile(r'^\sE=\s?(-?[0-9]*\.[0-9]*)\s*Delta',re.MULTILINE)
 
 # Class utils
 class DirectoryTree(object):
@@ -210,17 +212,17 @@ def thermochemistry(GOF:GaussianOutFile) -> tuple[float|None]:
     G = Link.gibbs[-1]
     return Z, H, G
 def potential_energy(GOF:GaussianOutFile,method:str='default')-> float|None:
-    """
+    f"""
     Returns the last potential energy of a GaussianOutFile of a certain
     method. The default is the energy of the SCF cycle ('SCF Done:')
 
     Parameters
     ----------
     GOF : GaussianOutFile
-    Method : string
+    method : string
         For DFT and HF the default behavior is correct. For Post-HF methods
         it needs to be specified. 
-        Currently: ['oniom','mp2','mp2scs','MP4','ccsdt']
+        Currently: {ALLOWEDMETHODS}
 
     Returns
     -------
@@ -253,6 +255,69 @@ def potential_energy(GOF:GaussianOutFile,method:str='default')-> float|None:
         if links and energy is None: 
             energy = links[-2].energy
     return energy
+def potential_energies(GOF:GaussianOutFile,method:str='default',withscf:bool=False)-> list[float|None]:
+    f"""
+    Returns all potential energies of a GaussianOutFile of a certain
+    method. The default is the energy of the SCF cycle ('SCF Done:')
+
+    Parameters
+    ----------
+    GOF : GaussianOutFile
+    method : str
+        For DFT and HF the default behavior is correct. For Post-HF methods
+        it needs to be specified. 
+        Currently: {ALLOWEDMETHODS}
+    withscf : bool
+        If Enabled (and method is 'default') it will include the energies of the
+        scf iterations.
+
+    Returns
+    -------
+    list[float]
+        Energies
+    """
+    
+    assert method in ALLOWEDMETHODS
+
+    if method == 'mp2':
+        energies = [l.MP2 for l in GOF.get_links(804)] 
+    elif method == 'mp2scs':
+        links502 = GOF.get_links(502)
+        links804 = GOF.get_links(804)
+        energies = [l0.energy + l1.get_SCScorr() for l0,l1 in zip(links502,links804)]
+    elif method == 'ccsdt':
+        energies = [l.CCSDT for l in GOF.get_links(913)]
+    elif method == 'mp4':
+        energies = [l.MP4 for l in GOF.get_links(913)]
+    elif method == 'oniom':
+        energies = [l.energy for l in GOF.get_links(120)]
+    else: # Otherwise go to the "Done(...)" Energy
+        energies = []
+        links502 = GOF.get_links(502)
+        links508 = GOF.get_links(508)
+        if not links508:
+            for l502 in links502:
+                if withscf:
+                    scf_energies = list(map(float,SCFCYCLE_PATTERN.findall(l502.text)))
+                    energies.extend(scf_energies)
+                    if scf_energies[-1] != l502.energy:
+                        energies.append(l502.energy)
+                energies.append(l502.energy)
+        else:
+            for l502,l508 in zip(links502,links508):
+                if withscf:
+                    scf_energies = list(map(float,SCFCYCLE_PATTERN.findall(l502.text)))
+                    energies.extend(scf_energies)
+                    if l508.energy is not None: 
+                        energies.append(l508.energy)
+                    elif scf_energies[-1] != l502.energy: 
+                        energies.append(l502.energy)
+                else:
+                    energy = l502.energy
+                    if l508.energy is not None: 
+                        energy = l508.energy
+                    energies.append(energy)
+    return energies
 
 # Console Utils
 def print_convergence(GOF,JobId,Last=False):

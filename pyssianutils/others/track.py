@@ -1,8 +1,8 @@
 """
-Prints the name of the scanned variable, its value, derivative, Max Forces
-convergence Y/N, Cartesian forces value and Geometry index of the geometry in
-the file. If no variable is provided nor it is a scan calculation it will 
-print the variables that may be tracked and exit.
+Prints the name of the scanned variable, its value (in Bohrs or radians), 
+derivative, Max Forces convergence Y/N, Cartesian forces value and Geometry 
+index of the geometry in the file. If no variable is provided nor it is a scan
+calculation it will print the variables that may be tracked and exit.
 """
 import argparse
 
