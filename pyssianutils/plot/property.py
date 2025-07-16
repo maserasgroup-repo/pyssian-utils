@@ -112,27 +112,16 @@ parameter.add_argument('name',
                        please look at the definitions on your file using 
                        pyssianutils others track""")
 
-distance = subparsers.add_parser('distance',help='Draw the distance between two atoms')
-add_common_arguments(distance)
-distance.add_argument('atoms',
-                       nargs=2,type=int,
-                       help="""Atom numerical ids following Gaussian's convention
-                       (First atom = 1)""")
-
-angle = subparsers.add_parser('angle',help='Draw the angle between three atoms')
-add_common_arguments(angle)
-angle.add_argument('atoms',
-                   nargs=3,type=int,
-                   help="""Atom numerical ids following Gaussian's convention
-                   (First atom = 1)""")
-
-dihedral = subparsers.add_parser('dihedral',help='Draw the dihedral between 4 atoms')
-add_common_arguments(dihedral)
-dihedral.add_argument('atoms',
-                      nargs=4,type=int,
-                      help="""Atom numerical ids following Gaussian's convention
-                      (First atom = 1)""")
-
+geometry = subparsers.add_parser('geometry',
+                                 help="""Draw a geometric parameter taht may 
+                                 not be a internal parameter. If 2 atom
+                                 ids are provided it will assume that it is a 
+                                 distance, 3 for an angle and 4 for a dihedral""")
+add_common_arguments(geometry)
+geometry.add_argument('atoms',
+                      nargs='+',type=int,
+                      help="""Atom numerical ids following the convention:
+                      first atom = 1""")
 
 def main(
          ifile:str|Path,
@@ -161,12 +150,8 @@ def main(
             x,y,xlabel,ylabel = _main_energy(GOF,**kwargs)
         case 'parameter':
             x,y,xlabel,ylabel = _main_parameter(GOF,**kwargs)
-        case 'distance':
-            x,y,xlabel,ylabel = _main_distance(GOF,**kwargs)
-        case 'angle':
-            x,y,xlabel,ylabel = _main_angle(GOF,**kwargs)
-        case 'dihedral':
-            x,y,xlabel,ylabel = _main_dihedral(GOF,**kwargs)
+        case 'geometry':
+            x,y,xlabel,ylabel = _main_geometry(GOF,**kwargs)
         case _: 
             raise NotImplementedError(f'Plotting of property={target} is not implemented')
     
@@ -236,59 +221,35 @@ def _main_parameter(
     xlabel = 'iteration'
     return x,y,xlabel,ylabel
 
-def _main_distance(
-        GOF:GaussianOutFile,
-        atoms:tuple[int,int,int]):
-    
-    source,target = atoms # Ids, first=1
+def _main_geometry(GOF:GaussianOutFile,
+                   atoms:tuple[int]):
+    n = len(atoms)
 
+    xlabel = 'iteration'
+
+    match n: 
+        case 2:
+            i,j = atoms
+            getter = lambda xyz: np.linalg.norm(xyz[i-1,:] - xyz[j-1,:])
+            ylabel = f'Distance({i},{j}) Angstrom'
+        case 3:
+            i,j,k = atoms
+            getter = lambda xyz: np.rad2deg(angle_between(xyz[i-1]-xyz[j-1],xyz[k-1]-xyz[j-1]))
+            ylabel = f'Angle({i},{j},{k}) Degrees'
+        case 4:
+            i,j,k,l = atoms
+            getter = lambda xyz: np.rad2deg(get_dihedral(xyz[i-1],xyz[j-1],xyz[k-1],xyz[l-1]))
+            ylabel = f'Dihedral({i},{j},{k},{l}) Degrees'
+        case _: 
+            raise argparse.ArgumentError(f"""the number of atom ids provided 
+                                should be 2, 3 or 4. The input was: {atoms}""")
+    
     y = []
     for l202 in GOF.get_links(202):
         xyz = np.array(Geometry.from_L202(l202).coordinates)
-        distance = np.linalg.norm(xyz[source-1,:] - xyz[target-1,:])
-        y.append(distance)
+        y.append(getter(xyz))
     
     y = np.array(y)
     x = np.arange(y.shape[0])
-    ylabel = f'Distance({source},{target}) Angstrom'
-    xlabel = 'iteration'
-    
-    return x,y,xlabel,ylabel
-
-def _main_angle(
-        GOF:GaussianOutFile,
-        atoms:tuple[int,int,int]):
-    
-    i,j,k = atoms
-
-    y = []
-    for l202 in GOF.get_links(202):
-        xyz = np.array(Geometry.from_L202(l202).coordinates)
-        angle = angle_between(xyz[i-1],xyz[j-1],xyz[k-1])
-        y.append(angle)
-    
-    y = np.array(y)
-    x = np.arange(y.shape[0])
-    ylabel = f'Angle({i},{j},{k}) Angstrom'
-    xlabel = 'iteration'
-    
-    return x,y,xlabel,ylabel
-
-def _main_dihedral(
-        GOF:GaussianOutFile,
-        atoms:tuple[int,int,int,int]):
-    
-    i,j,k,l = atoms
-
-    y = []
-    for l202 in GOF.get_links(202):
-        xyz = np.array(Geometry.from_L202(l202).coordinates)
-        angle = get_dihedral(xyz[i-1],xyz[j-1],xyz[k-1],xyz[l-1])
-        y.append(angle)
-    
-    y = np.array(y)
-    x = np.arange(y.shape[0])
-    ylabel = f'Angle({i},{j},{k}) Angstrom'
-    xlabel = 'iteration'
     
     return x,y,xlabel,ylabel
