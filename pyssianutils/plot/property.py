@@ -179,6 +179,7 @@ def main(
         plt.scatter(x,y,color=color)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
+    plt.title(Path(ifile).stem)
 
     if is_interactive:
         plt.show(block=True)
@@ -198,14 +199,6 @@ def _main_energy(
         xlabel = 'scf step'
     return x,y,xlabel,ylabel
 
-#def guess_parameter_unit(initial:float,iteration:float):
-#    if np.isclose(iteration*BOHR2ANGS,initial):
-#        converter,unit = lambda x: x*BOHR2ANGS, 'Angstrom'
-#    elif np.isclose(np.rad2deg(iteration),initial): 
-#        converter,unit = lambda x: np.rad2deg(x), 'Degrees'
-#    else:
-#        converter, unit = lambda x: x, '(unknown)'
-#    return converter, unit
 def guess_parameter_unit(name:str):
     if name.startswith('R'):
         converter,unit = lambda x: x*BOHR2ANGS, 'Angstrom'
