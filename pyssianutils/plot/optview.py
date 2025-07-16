@@ -35,8 +35,8 @@ def get_energy(l502,l508):
 # Parser and main definition
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('ifile',help='Gaussian Output File')
-parser.add_argument('ofile',nargs='?',
-                    default=Path('screen.png'),
+parser.add_argument('--outfile',
+                    nargs='?',default=Path('screen.png'),
                     help='Output image file')
 parser.add_argument('--width',
                     type=float,default=WIDTH,
@@ -47,20 +47,35 @@ parser.add_argument('--height',
 parser.add_argument('--dpi',
                     type=int,default=DPI,
                     help=f"Figure's Dots Per Inch (default {DPI})")
-parser.add_argument('--interactive',
-                    dest='is_interactive',
-                    action='store_true',default=False,
-                    help="""Instead of writing to a file open a window showing 
-                    the figure""")
-parser.add_argument('--browser',
-                    dest='in_browser',
-                    action='store_true',default=False,
-                    help="""Only if --interactive is enabled, it will display
-                    the image in the browser. To exit remember to Ctrl+C""")
+if DEFAULTS['plot.property'].getboolean('default_interactive'): 
+    parser.add_argument('--static',
+                        dest='is_interactive',
+                        action='store_false', default=True,
+                        help="""Write to a file instead of showing the figure
+                        in a new window""")
+else:
+    parser.add_argument('--interactive',
+                        dest='is_interactive',
+                        action='store_true',default=False,
+                        help="""Instead of writing to a file open a window showing 
+                        the figure""")
+if DEFAULTS['plot.property'].getboolean('default_browser'):
+    parser.add_argument('--no-browser',
+                        dest='in_browser',
+                        action='store_false',default=True,
+                        help="""if --interactive is enabled, it disables 
+                        displaing the image in the browser and it will 
+                        be displayed in a window instead.""")
+else:
+    parser.add_argument('--browser',
+                        dest='in_browser',
+                        action='store_true',default=False,
+                        help="""Only if --interactive is enabled, it will display
+                        the image in the browser. To exit remember to Ctrl+C""")
 
 def main(
         ifile:str|Path,
-        ofile:str|Path,
+        outfile:str|Path,
         width:float=WIDTH,
         height:float=HEIGHT,
         dpi:float=DPI,
@@ -73,13 +88,19 @@ def main(
     if not LIBRARIES_LOADED: 
         raise LIBRARIES_ERROR
     
+    if Path(outfile).suffix == '.svg':
+        matplotlib.rcParams['svg.fonttype'] = 'none'
+
     if is_interactive and in_browser: 
         matplotlib.use('WebAgg')
     elif is_interactive: 
-        warnings.warn("""We have observed that while the figure generated 
-                      when writing to a file maintains all desired proportions
-                      when showing it interactively (not in the browser) 
-                      fontsizes and relative positions are not respected.""")
+        msg = """We have observed that while the figure generated 
+              when writing to a file maintains all desired proportions
+              when showing it interactively (not in the browser) 
+              fontsizes and relative positions are not respected.
+              """.split('\n')
+        msg = ' '.join([l.strip() for l in msg])
+        warnings.warn(msg)
     
     with GaussianOutFile(ifile) as GOF:
         GOF.read()
@@ -118,8 +139,11 @@ def main(
                         displacement.Threshold, rmsdisplacement.Threshold)
             ylabels = (force.Item, rmsforce.Item, displacement.Item, rmsdisplacement.Item)
 
-    # prepare figure 
-    fig = plt.figure(figsize=(width,height),dpi=dpi,constrained_layout=False)
+    # prepare figure
+    if is_interactive:
+        fig = plt.figure(figsize=(width,height))
+    else: 
+        fig = plt.figure(figsize=(width,height),dpi=dpi)
 
     # We create the grid_A
     gridspec_A_kwds = dict()
@@ -178,5 +202,5 @@ def main(
     if is_interactive:
         plt.show(block=True)
     else:
-        print(f'writing -> {ofile}')
-        fig.savefig(ofile,dpi=dpi)
+        print(f'writing -> {outfile}')
+        fig.savefig(outfile,dpi=dpi)

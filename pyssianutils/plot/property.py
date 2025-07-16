@@ -26,6 +26,10 @@ else:
     LIBRARIES_LOADED = True
 
 BOHR2ANGS = 5.29177210544E-1 # Source: https://physics.nist.gov/cgi-bin/cuu/Value?bohrrada0
+DEFAULTS = load_app_defaults()
+DEFAULT_OUTFILE = Path(DEFAULTS['plot.property']['outfile'])
+DEFAULT_PLOT = Path(DEFAULTS['plot.property']['default_plot'])
+DEFAULT_COLOR = DEFAULTS['plot.property']['color']
 
 # Utility functions
 def guess_method(GOF:GaussianOutFile): 
@@ -74,18 +78,33 @@ def get_dihedral(i:np.array,j:np.array,k:np.array,l:np.array):
 def add_common_arguments(parser:argparse.ArgumentParser): 
     parser.add_argument('ifile',help='Gaussian Output File')
     parser.add_argument('--outfile',
-                        default=Path('screen.png'),
+                        default=DEFAULT_OUTFILE,
                         help='Output image file')
-    parser.add_argument('--interactive',
-                        dest='is_interactive',
-                        action='store_true',default=False,
-                        help="""Instead of writing to a file open a window showing 
-                        the figure""")
-    parser.add_argument('--browser',
-                        dest='in_browser',
-                        action='store_true',default=False,
-                        help="""Only if --interactive is enabled, it will display
-                        the image in the browser. To exit remember to Ctrl+C""")
+    if DEFAULTS['plot.property'].getboolean('default_interactive'): 
+        parser.add_argument('--static',
+                            dest='is_interactive',
+                            action='store_false', default=True,
+                            help="""Write to a file instead of showing the figure
+                            in a new window""")
+    else:
+        parser.add_argument('--interactive',
+                            dest='is_interactive',
+                            action='store_true',default=False,
+                            help="""Instead of writing to a file open a window showing 
+                            the figure""")
+    if DEFAULTS['plot.property'].getboolean('default_browser'):
+        parser.add_argument('--no-browser',
+                            dest='in_browser',
+                            action='store_false',default=True,
+                            help="""if --interactive is enabled, it disables 
+                            displaing the image in the browser and it will 
+                            be displayed in a window instead.""")
+    else:
+        parser.add_argument('--browser',
+                            dest='in_browser',
+                            action='store_true',default=False,
+                            help="""Only if --interactive is enabled, it will display
+                            the image in the browser. To exit remember to Ctrl+C""")
 
 # Parser and main definition
 parser = argparse.ArgumentParser(description=__doc__)
@@ -125,22 +144,26 @@ geometry.add_argument('atoms',
 
 def main(
          ifile:str|Path,
-         outfile:str|Path,
          target:str,
+         outfile:str|Path=DEFAULT_OUTFILE,
          line:bool=False,
          scatter:bool=False,
-         color:str='k',
+         color:str=DEFAULT_COLOR,
          is_interactive:bool=False,
          in_browser:bool=False,
          **kwargs):  
     
+    assert DEFAULT_PLOT in ['line','scatter','both']
+    # We want to delay any errors of optional libraries to the 
+    # actual moment when they would be required
+    if not LIBRARIES_LOADED: 
+        raise LIBRARIES_ERROR
+    
+    if Path(outfile).suffix == '.svg':
+        matplotlib.rcParams['svg.fonttype'] = 'none'
+
     if is_interactive and in_browser: 
         matplotlib.use('WebAgg')
-    elif is_interactive: 
-        warnings.warn("""We have observed that while the figure generated 
-                      when writing to a file maintains all desired proportions
-                      when showing it interactively (not in the browser) 
-                      fontsizes and relative positions are not respected.""")
         
     with GaussianOutFile(ifile) as GOF: 
         GOF.read()
@@ -156,12 +179,15 @@ def main(
             raise NotImplementedError(f'Plotting of property={target} is not implemented')
     
     if not line and not scatter:
-        plt.plot(x,y,color=color)
-        plt.scatter(x,y,c=color)
+        if DEFAULT_PLOT in ['line','both']:
+            plt.plot(x,y,color=color)
+        if DEFAULT_PLOT in ['scatter','both']:
+            plt.scatter(x,y,c=color)
     elif line: 
         plt.plot(x,y,color=color)
     else:
         plt.scatter(x,y,color=color)
+
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(Path(ifile).stem)
