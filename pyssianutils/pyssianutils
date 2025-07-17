@@ -26,6 +26,11 @@ if __name__ == '__main__':
     register_main(pyssianutils.initialize.clean_main,'clean')
 
     add_parser_as_subparser(subparsers,
+                            pyssianutils.initialize.pack_parser, 'pack',
+                            help=pyssianutils.initialize.pack_description)
+    register_main(pyssianutils.initialize.pack_main,'pack')
+
+    add_parser_as_subparser(subparsers,
                             pyssianutils.initialize.defaults_parser, 'defaults',
                             help=pyssianutils.initialize.defaults_description)
     register_main(pyssianutils.initialize.defaults_main,'defaults')
@@ -40,6 +45,7 @@ if __name__ == '__main__':
         (pyssianutils.toxyz, 'toxyz'),
         (pyssianutils.others, 'others'),
         (pyssianutils.submit, 'submit'),
+        (pyssianutils.submit.slurm, 'slurm'),
     ]
     for module,modulename in modules: 
         add_parser_as_subparser(subparsers,

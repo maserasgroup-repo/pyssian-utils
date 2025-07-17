@@ -9,10 +9,10 @@ import importlib.resources
 from pathlib import Path
 from functools import cache
 
-from .utils import register_main
-
 # Typing imports
 import argparse
+
+PKGDEFAULTNAME = 'pyssianutils_appdata'
 
 # Utility Functions
 @cache
@@ -25,11 +25,12 @@ def get_appdir() -> Path:
 def get_resourcesdir() -> Path: 
     resourcesdir = importlib.resources.files(__package__)/'resources'
     return resourcesdir
-    #raise NotImplementedError('If you are getting this error complain to the developer')
-def pack_appdir(appdir:Path,target:Path=Path('default_appdata.tar')): 
+def pack_appdir(appdir:Path,target:Path=Path(f'{PKGDEFAULTNAME}.tar')):
+    print(f'Creating {target}')
     with tarfile.open(target,'w') as tar:
         tar.add(appdir/'defaults.ini','defaults.ini')
         tar.add(appdir/'templates/','templates/')
+    print('    finished')
 def unpack_appdir(ifile:Path,location:Path): 
     tar = tarfile.open(ifile)
     members = ['defaults.ini',]
@@ -100,10 +101,26 @@ clean_parser = argparse.ArgumentParser(description=clean_description)
 
 def clean_main():
 
-    check_initialization()
-
     appdir = get_appdir()
     shutil.rmtree(appdir)
+
+pack_description = """
+Packages the user app data into a tar file that can be used by pyssianutils init
+to simplify exporting the user defaults and templates to a new machine.
+"""
+pack_parser = argparse.ArgumentParser(description=pack_description)
+pack_parser.add_argument('name',nargs='?',
+                         default=PKGDEFAULTNAME,
+                         help="""name of the file that will contain the user's configuration""")
+pack_parser.add_argument('--outputdir','-O',
+                         default=Path.cwd(),
+                         help="""Directory where the file will be created. 
+                         Defaults to the CWD""")
+def pack_main(name:str,
+              outputdir:Path):
+
+    appdir = get_appdir()
+    pack_appdir(appdir,target=outputdir/f'{name}.tar')
 
 defaults_description = """
 Allows the display of default values and their modification from the command line.

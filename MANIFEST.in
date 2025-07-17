@@ -7,7 +7,8 @@ include pyssianutils/pyssianutils
 
 # include the resources
 include pyssianutils/resources/defaults.ini
-include pyssianutils/resources/templates/empty.txt
+include pyssianutils/resources/templates/slurm/example.txt
+include pyssianutils/resources/templates/slurm/example.json
 
 # Exclude Files
 global-exclude *.pyc
