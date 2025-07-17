@@ -13,7 +13,6 @@ from ..initialize import load_app_defaults
 try:
     import matplotlib
     import matplotlib.pyplot as plt
-    import pandas as pd 
 except ImportError as e: 
     LIBRARIES_LOADED = False
     LIBRARIES_ERROR = e

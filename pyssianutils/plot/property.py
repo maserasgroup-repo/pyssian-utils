@@ -4,7 +4,6 @@ calculation file.
 """
 
 import argparse
-import warnings
 from pathlib import Path
 
 from pyssian import GaussianOutFile
@@ -16,7 +15,6 @@ from ..initialize import load_app_defaults
 
 try:
     import numpy as np
-    import pandas as pd 
     import matplotlib
     import matplotlib.pyplot as plt
 except ImportError as e: 

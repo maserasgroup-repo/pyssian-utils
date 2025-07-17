@@ -6,10 +6,8 @@ extracts the last geometry (unless --step is specified). This script is meant
 for quick inspections of gaussian outputs using other GUI tools such as jmol. 
 """
 
-import os
 from pathlib import Path
 import argparse
-from functools import partial
 
 from pyssian import GaussianOutFile, GaussianInFile
 from pyssian.classutils import Geometry

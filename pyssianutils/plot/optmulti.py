@@ -3,7 +3,6 @@ Generate an interactive figure for a multiple gaussian output calculation
 including key convergence variables of an optimization. 
 """
 
-import sys 
 import argparse
 from pathlib import Path
 
@@ -12,9 +11,7 @@ from ..initialize import load_app_defaults
 
 try:
     import numpy as np
-    import pandas as pd 
 
-    import matplotlib.pyplot as plt
     from matplotlib.cm import get_cmap
     from matplotlib.colors import to_hex
 

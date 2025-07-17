@@ -8,7 +8,6 @@ or 'bash {script_name}'
 """
 
 import argparse
-import configparser
 from pathlib import Path
 from collections import namedtuple
 from itertools import groupby

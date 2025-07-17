@@ -123,7 +123,10 @@ clean_parser = argparse.ArgumentParser(description=clean_description)
 def clean_main():
 
     appdir = get_appdir()
-    shutil.rmtree(appdir)
+    try:
+        shutil.rmtree(appdir)
+    except FileNotFoundError: 
+        warnings.warn(f'pyssianutils installation at {appdir} was not found so nothing to clean')
 
 pack_description = """
 Packages the user app data into a tar file that can be used by pyssianutils init
