@@ -1,9 +1,9 @@
 import shutil
+import platformdirs
 import platform
 import warnings
 import tarfile
 import configparser
-from collections import defaultdict
 import importlib.resources
 
 from pathlib import Path
@@ -16,11 +16,23 @@ PKGDEFAULTNAME = 'pyssianutils_appdata'
 
 # Utility Functions
 @cache
-def get_appdir() -> Path: 
+def get_appdir(use_home=True) -> Path: 
     system = platform.system()
-    if system == 'Linux': 
-        return Path.home()/'.pyssianutils'
-    raise NotImplementedError('Sorry I have only implemented this in Linux')
+    if system == 'Linux':
+        home_path = Path.home()/'.pyssianutils'
+        xdg_path = Path(platformdirs.user_data_dir(str(__package__)))
+        if home_path.exists() and xdg_path.exists():
+            raise RuntimeError(f"""Two pyssianutils app data directories have 
+                               been found. Please manually remove one of them:
+                               {home_path} and {xdg_path}""")
+        elif home_path.exists():
+            return home_path
+        elif xdg_path.exists():
+            return xdg_path
+        elif use_home:
+            return home_path
+    return Path(platformdirs.user_data_dir(str(__package__)))
+
 @cache
 def get_resourcesdir() -> Path: 
     resourcesdir = importlib.resources.files(__package__)/'resources'
@@ -69,12 +81,21 @@ init_parser.add_argument("--unpack",metavar='PACKAGE',dest='package',
 init_parser.add_argument("--force",action='store_true',default=False,
                         help="""overwrite any previous pyssianutils 
                         application data if it already existed""")
+if platform.system() == 'Linux': 
+    init_parser.add_argument('--xdg-default-appdir',
+                             dest='use_home',default=True,action='store_false',
+                             help="""If enabled it will store pyssianutils data
+                             at $HOME/.local/share/pyssianutils instead of 
+                             at $HOME/.pyssianutils""")
+else:
+    init_parser.set_defaults(use_home=False)
 
 def init_main(
               package:None|Path|str=None,
-              force:bool=False
+              force:bool=False,
+              use_home:bool=False,
               ):
-    appdir = get_appdir()
+    appdir = get_appdir(use_home)
 
     if appdir.exists() and not force:
         raise RuntimeError('A previously existing app data directory was found')
