@@ -14,17 +14,20 @@ import warnings
 from pyssian import GaussianInFile
 
 from ..initialize import get_appdir, load_app_defaults
+from ..utils import DirectoryTree
 
 from typing import Any
 
 # Set up default values
 DEFAULTS = load_app_defaults()
+GAUSSIAN_IN_SUFFIX = DEFAULTS['common']['in_suffix']
+GAUSSIAN_OUT_SUFFIX = DEFAULTS['common']['out_suffix']
 DEFAULT_WALLTIME = DEFAULTS['submit.slurm']['walltime']
 DEFAULT_MEMORY = DEFAULTS['submit.slurm']['memory']
 DEFAULT_JOBNAME = DEFAULTS['submit.slurm']['jobname']
 DEFAULT_GUESS =  DEFAULTS['submit.slurm'].getboolean('guess_default')
-GAUSSIAN_IN_SUFFIX = DEFAULTS['common']['in_suffix']
-GAUSSIAN_OUT_SUFFIX = DEFAULTS['common']['out_suffix']
+DEFAULT_INPLACE = DEFAULTS['submit.slurm'].getboolean('inplace_default')
+SLURM_SUFFIX = DEFAULTS['submit.slurm']['slurm_suffix']
 
 # Maybe I need to create the "CandidateTemplate" class, a simpler version to 
 # avoid throwing errors during instantiation to simplify the checking process
@@ -412,10 +415,6 @@ for jsonfile in sorted((appdir/'templates'/'slurm').glob('*.json')):
         USERTEMPLATES[name] = (templatefile,TemplateJson(jsonfile))
 
 # Utility functions
-def prepare_suffix(suffix:str): 
-    if suffix.startswith('.'): 
-        return suffix.rstrip()
-    return f'.{suffix.strip()}'
 def check_templates_agreement(filepath:str|Path,
                               json_t:TemplateJson,
                               raise_errors:bool=True):
@@ -484,6 +483,117 @@ def inplace_transformations(filepath:Path,
 
     GIF.write(filepath=filepath)
 
+# File(s) manipulation functions
+def prepare_suffix(suffix:str): 
+    if suffix.startswith('.'): 
+        return suffix.rstrip()
+    return f'.{suffix.strip()}'
+def prepare_filepaths(filepaths:list[str|Path],
+                      outdir:str|Path|None,
+                      in_suffix:str,
+                      out_suffix:str,
+                      is_folder:bool,
+                      is_listfile:bool,
+                      is_inplace:bool=False,
+                      do_overwrite:bool=False,
+                      skip:bool=False,
+                      ) -> tuple[list[Path]]:
+    """
+    This function encapsulates all the logic related to the generation of the
+    final paths to the files, directory and subdirectory creation as well as
+    paths to the template files.
+
+    Parameters
+    ----------
+    folder : Namespace
+        Output of the ArgumentParser.parse_args function
+
+    Returns
+    -------
+    templates,geometries,newfiles
+        A tuple of three lists of the same size. Templates represents the
+        previously existing '.in' files. geometries the '.out' files provided
+        by the user and newfiles the '.in' files that are to be created.
+
+    """
+
+    # Prepare folder structure
+    if is_folder:
+        folder = filepaths[0]
+        if not is_inplace and outdir is None:
+            outdir = Path.cwd()
+        ifiles,newfiles = prepare_filepaths_folder(folder,
+                                                   outdir,
+                                                   in_suffix,
+                                                   out_suffix)
+    else:
+        ifiles,newfiles = prepare_filepaths_nofolder(filepaths,
+                                                     outdir,
+                                                     out_suffix,
+                                                     is_inplace,
+                                                     is_listfile)
+    if not do_overwrite:
+        ifinal,nfinal = [],[]
+        for ifile,nf in zip(ifiles,newfiles): 
+            if nf.exists() and not skip:
+                raise FileExistsError(f"""{nf} would be overwritten, and maybe 
+                                      other files. If that is the desired action
+                                      please enable the --overwrite flag""")
+            ifinal.append(ifile)
+            nfinal.append(nf)
+        
+    return ifiles, newfiles
+def prepare_filepaths_folder(folder:Path|str,
+                             odir:str|Path|None,
+                             in_suffix:str,
+                             out_suffix:str) -> tuple[list[Path]]:
+    """
+    This function encapsulates the logic of the path generation when the
+    --folder flag is enabled.
+    """
+    dir = DirectoryTree(folder,in_suffix,out_suffix)
+    if odir is not None:
+        odir = Path(odir)
+        dir.set_newroot(odir)
+        # create output folders
+        print(f"Folders Created at '{odir}'")
+        dir.create_folders()
+    
+    # Find the gaussian output files
+    ifiles = list(dir.infiles)
+    newfiles = [dir.newpath(path).with_suffix(out_suffix) for path in ifiles]
+
+    return ifiles, newfiles
+def prepare_filepaths_nofolder(files:list[str|Path],
+                               odir:str|Path|None,
+                               out_suffix:str,
+                               is_inplace:bool=False,
+                               is_listfile:bool=False,
+                               ) -> tuple[list[Path]]:
+    """
+    This function encapsulates the logic of the path generation when the
+    --folder flag is not enabled.
+    """
+    if not is_inplace:
+        if odir is None:
+            odir = Path.cwd()
+        else:
+            odir = Path(odir)
+        odir.mkdir(parents=False,exist_ok=True)
+
+    if is_listfile:
+        with open(Path(files[0]),'r') as F:
+            ifiles = [Path(line.strip()) for line in F if line.strip()]
+    else:
+        ifiles = [Path(f) for f in files]
+    
+    newfiles = [path.with_suffix(out_suffix) for path in ifiles]
+
+    if not is_inplace:
+        newfiles = [odir/g.name for g in newfiles]
+
+    return ifiles, newfiles
+
 # Parser Creation Utils
 def add_template_common_options(parser:argparse.ArgumentParser,
                                 walltime_default:str,
@@ -494,16 +604,59 @@ def add_template_common_options(parser:argparse.ArgumentParser,
     parser.add_argument('inputfiles',
                         nargs='*',
                         help=f"""Gaussian input files. If none is provided, it 
-                        will create a "{jobname_default}.slurm" to use as 
+                        will create a "{jobname_default}{SLURM_SUFFIX}" to use as 
                         template.""")
-    parser.add_argument('--outdir',
-                        default=None,type=Path,
-                        help=f"""Output directory. If none is provided, it 
-                        will create the files in the same location as their 
-                        respective inputs""")
+    group_input = parser.add_mutually_exclusive_group()
+    group_input.add_argument('-l','--listfile',
+                            dest='is_listfile',
+                            action='store_true',default=False,
+                            help="""When enabled instead of considering the 
+                            files provided as the gaussian output files 
+                            considers the file provided as a list of gaussian
+                            output files""")
+    group_input.add_argument('-r','--folder',
+                            dest='is_folder',
+                            action='store_true',default=False,
+                            help=f"""Takes the folder and its subfolder 
+                            hierarchy and creates a new folder with the same 
+                            subfolder structure. Finds all the 
+                            {GAUSSIAN_OUT_SUFFIX}, attempts to find their 
+                            companion {GAUSSIAN_IN_SUFFIX} files and creates the 
+                            new inputs in their equivalent locations in the new
+                            folder tree structure.""")
+    if DEFAULT_INPLACE: 
+        parser.add_argument('-o','--outdir',
+                            default=None,type=Path,
+                            help="""Where to create the new files, defaults 
+                            to the current directory""")
+        parser.set_defaults(is_inplace=True)
+    else:
+        group_output = parser.add_mutually_exclusive_group()
+        group_output.add_argument('-o','--outdir',
+                                default=None,type=Path,
+                                help="""Where to create the new files, defaults 
+                                to the current directory""")
+        group_output.add_argument('--inplace',
+                                dest='is_inplace',
+                                action='store_true',default=False,
+                                help="""Creates the new files in the same 
+                                locations as the files provided by the user""")
     parser.add_argument('--suffix',
-                        default='.slurm',
-                        help="suffix of the generated files") 
+                        default=SLURM_SUFFIX,
+                        help="suffix of the generated files")
+    overwriting = parser.add_mutually_exclusive_group()
+    overwriting.add_argument('-ow','--overwrite',
+                             dest='do_overwrite',
+                             action='store_true',default=False,
+                             help="""When creating the new files if a file with the 
+                             same name exists overwrites its contents. (The default 
+                             behaviour is to raise an error to notify the user before
+                             overwriting).""")
+    overwriting.add_argument('--skip',
+                             dest='skip',
+                             action='store_true',default=False,
+                             help="""Skip the creation of slurm templates that 
+                             already exist""")
     
     memory = parser.add_mutually_exclusive_group()
     memory.add_argument('--memory',
@@ -597,9 +750,14 @@ for name,(slurm_t,json_t) in USERTEMPLATES.items():
 
 def _main_generate(templatename:str,
                    inputfiles:list[Path],
-                   outdir:Path|None,
                    memory:str|None,
-                   suffix:str='.slurm',
+                   outdir:str|Path|None=None,
+                   is_folder:bool=False,
+                   is_listfile:bool=False,
+                   is_inplace:bool=False,
+                   do_overwrite:bool=False,
+                   skip:bool=False,
+                   suffix:str=SLURM_SUFFIX,
                    memory_per_cpu:bool=False,
                    use_max_walltime:bool=False,
                    guess_cores:bool=False,
@@ -627,23 +785,29 @@ def _main_generate(templatename:str,
         print(f'Creating base template: {base_template.jobname}{suffix}')
         with open(f'{base_template.jobname}{suffix}','w') as F: 
             F.write(str(base_template))
-    else:
-        for ifile in inputfiles:
-            ifile = Path(ifile)
-            if outdir is None: 
-                newfile = ifile.with_suffix(suffix)
-            else:
-                newfile = outdir/ifile.with_suffix(suffix).name
-            print(f'Creating file {newfile}')
-            template = base_template.copy_with(**updated_params)
-            template.guess_fromfile(ifile,
-                                    guesscores=guess_cores,
-                                    guessmemory=guess_memory)
-            with open(newfile,'w') as F: 
-                F.write(str(template))
-            
-            if inplace_mem is not None or inplace_nprocs is not None: 
-                inplace_transformations(ifile,template,inplace_mem,inplace_nprocs)
+        return 
+
+    ifiles,newfiles = prepare_filepaths(inputfiles,
+                                        outdir,
+                                        GAUSSIAN_IN_SUFFIX,
+                                        suffix,
+                                        is_folder,
+                                        is_listfile,
+                                        is_inplace,
+                                        do_overwrite,
+                                        skip)
+                                        
+    for ifile,newfile in zip(ifiles,newfiles):
+        print(f'Creating file {newfile}')
+        template = base_template.copy_with(**updated_params)
+        template.guess_fromfile(ifile,
+                                guesscores=guess_cores,
+                                guessmemory=guess_memory)
+        with open(newfile,'w') as F: 
+            F.write(str(template))
+        
+        if inplace_mem is not None or inplace_nprocs is not None: 
+            inplace_transformations(ifile,template,inplace_mem,inplace_nprocs)
 
 check = subparsers.add_parser('check-template',
                               help="""Inspects a template to display the keywords
@@ -723,8 +887,10 @@ def _main_add_template(filepath:Path,
     if name is None: 
         name = filepath.stem
     shutil.copy(filepath,appdir/'templates'/'slurm'/f'{name}.txt')
+    print(f"Successfully added {appdir/'templates'/'slurm'/f'{name}.txt'}")
     if jsonfile is not None:
         shutil.copy(jsonfile,appdir/'templates'/'slurm'/f'{name}.json')
+        print(f"Successfully added {appdir/'templates'/'slurm'/f'{name}.json'}")
     else:
         jsonpath = appdir/'templates'/'slurm'/f'{name}.json'
         TemplateJson.basic_with_kwds(*template.keywords).write(jsonpath)
