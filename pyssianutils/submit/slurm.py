@@ -68,6 +68,14 @@ class TemplateJson(object):
             if not isinstance(v,Mapping):
                 self.choices[k] = {i:i for i in v}
 
+    def ensure_reasonable_defaults(self):
+        for k,v in self.defaults.items(): 
+            if k in self.choices: 
+                if v not in self.choices[k]: 
+                    raise ErrorDefault(f"default value {k}={v} is not within "
+                                       f"the available choices {list(self.choices[k].keys())}. "
+                                        "Please modify the json accordingly")
+
     @property
     def keywords(self): 
         return list(self.defaults.keys())
@@ -221,8 +229,8 @@ class TemplateSlurm(TemplateText):
                 try:
                     value = self.choices[attr][value]
                 except KeyError:
-                    raise ErrorDefault(f"""{attr}={value} is not within the 
-                                        available choices {self.choices.keys()}""")
+                    raise ErrorDefault(f"{attr}={value} is not within the" 
+                                       f"available choices {self.choices[attr].keys()}")
             self.__setattr__(attr,value)
         
         # checks
@@ -233,7 +241,8 @@ class TemplateSlurm(TemplateText):
             if key in self._special_keywords:
                 continue
             if not hasattr(self,key):
-                msg = f"The slurm template created requires the keyword {key} that has no default specified"
+                msg = (f'The slurm template created requires the keyword {key}'
+                        'that has no default specified')
                 raise MissingDefault(msg)
         
         if not hasattr(self,'cores'): 
@@ -418,21 +427,22 @@ for jsonfile in sorted((appdir/'templates'/'slurm').glob('*.json')):
 def check_templates_agreement(filepath:str|Path,
                               json_t:TemplateJson,
                               raise_errors:bool=True):
+    
+    json_t.ensure_reasonable_defaults()
+
     both_agree = True
     try: 
         template = TemplateSlurm.from_file(filepath,json_t)
     except ErrorDefault as e: 
         both_agree = False
-        msg = (' '.join(str(e).strip().replace('\n',' ').split()) 
-               + '\nplease check the provided json file')
+        msg = (str(e) + '\nplease check the provided json file')
         if raise_errors:
             raise ErrorDefault(msg)
         else: 
             warnings.warn(msg)
     except MissingDefault as e: 
         both_agree = False
-        msg = (' '.join(str(e).strip().replace('\n',' ').split()) 
-               + '\nplease check the provided json file')
+        msg = (str(e) + '\nplease check the provided json file')
         if raise_errors:
             raise MissingDefault(msg)
         else:
@@ -476,9 +486,9 @@ def inplace_transformations(filepath:Path,
             try: 
                 GIF.nprocs = template.defaults['cores']
             except KeyError: 
-                warnings.warn(' '.join("""refusing to modify in-place the gaussian 
-                input file as no default 'cores' nor specific value had been 
-                assigned to the template""".replace('\n',' ').split()))
+                warnings.warn("refusing to modify in-place the gaussian input "
+                              "file as no default 'cores' nor specific value "
+                              "had been assigned to the template")
                 return
 
     GIF.write(filepath=filepath)
@@ -536,9 +546,9 @@ def prepare_filepaths(filepaths:list[str|Path],
         ifinal,nfinal = [],[]
         for ifile,nf in zip(ifiles,newfiles): 
             if nf.exists() and not skip:
-                raise FileExistsError(f"""{nf} would be overwritten, and maybe 
-                                      other files. If that is the desired action
-                                      please enable the --overwrite flag""")
+                raise FileExistsError(f"{nf} would be overwritten, and maybe "
+                                      "other files. If that is the desired action "
+                                      "please enable the --overwrite flag")
             ifinal.append(ifile)
             nfinal.append(nf)
         
@@ -731,7 +741,7 @@ parser.set_defaults(slurm_mode=None)
 subparsers = parser.add_subparsers(help='sub-command help',dest='slurm_mode')
 
 # Templatenames should each be a parser
-for name,(slurm_t,json_t) in USERTEMPLATES.items(): 
+for name,(slurm_t,json_t) in USERTEMPLATES.items():
     subparser = subparsers.add_parser(name,help=f'Generate slurm files using template "{name}"')
     # The following defaults should technically never be used except when 
     # the setup is not correctly configured and as this code is executed before
@@ -767,6 +777,7 @@ def _main_generate(templatename:str,
                    **kwargs):
 
     slurmpath,json_t = USERTEMPLATES[templatename]
+    json_t.ensure_reasonable_defaults()
 
     suffix = prepare_suffix(suffix)
 
@@ -910,10 +921,10 @@ def _main_rm_template(name:str|None):
     slurmpath = appdir/'templates'/'slurm'
     # Ensure it exists
     if name not in USERTEMPLATES:
-        raise ValueError(f"""Template '{name}' is not detected by pyssianutils 
-                         as a template. Please check available templates by 
-                         with 'pyssianutils submit slurm' or manually remove 
-                         the file located at {slurmpath}""") 
+        raise ValueError(f"Template '{name}' is not detected by pyssianutils" 
+                         "as a template. Please check available templates by"
+                         "with 'pyssianutils submit slurm' or manually remove"
+                         f"the file located at {slurmpath}") 
     
     (slurmpath/f'{name}.txt').unlink(missing_ok=True)
     print(f"successfully removed {slurmpath/f'{name}.txt'}")
@@ -940,7 +951,7 @@ def main(
             _main_rm_template(**kwargs)
         case _:
             if slurm_mode not in USERTEMPLATES: 
-                raise RuntimeError(f"""Slurm template name {slurm_mode} is not 
-                                   defined for the current user""")
+                raise RuntimeError(f"Slurm template name {slurm_mode} is not"
+                                   "defined for the current user")
             _main_generate(templatename=slurm_mode,
                            **kwargs)

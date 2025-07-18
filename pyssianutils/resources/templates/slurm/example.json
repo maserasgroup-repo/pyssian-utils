@@ -27,6 +27,6 @@
         "walltime": "Time requested for the calculation",
         "jobname": "default name for the job"
     },
-    "cores": [2,4,6,8],
-    "memory": ["4GB","8GB","24GB"]
+    "cores": [2,4,8,16,24,32],
+    "memory": ["2GB","4GB","8GB","16GB","24GB","32GB","64GB"]
 }

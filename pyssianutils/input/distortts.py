@@ -64,9 +64,9 @@ def prepare_filepaths(filepaths:list[str|Path],
 
     # Check the compatibility of the arguments, otherwise raise an error
     if is_inplace and no_marker and not do_overwrite:
-        raise ValueError("""Using the --inplace with --no-marker will replace
-                the previously existing input files. To continue please re-run
-                the command but add the flag '--overwrite' (or '-ow').""")
+        raise ValueError("Using the --inplace with --no-marker will replace "
+                "the previously existing input files. To continue please re-run "
+                " the command but add the flag '--overwrite' (or '-ow').")
 
     # Prepare folder structure
     if is_folder:
