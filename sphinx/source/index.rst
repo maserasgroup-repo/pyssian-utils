@@ -18,6 +18,7 @@ Contents
    :maxdepth: 1
 
    readme_link
+   usage
    scripts
    pyssianutils
 

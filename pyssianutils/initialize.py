@@ -1,3 +1,8 @@
+"""
+The initialize module defines all the parser commands (and their behaviour)
+related with the pyssianutils data and provides methods for easy access to said
+resources.
+"""
 import shutil
 import platformdirs
 import platform
@@ -16,7 +21,30 @@ PKGDEFAULTNAME = 'pyssianutils_appdata'
 
 # Utility Functions
 @cache
-def get_appdir(use_home=True) -> Path: 
+def get_appdir(use_home:bool=True) -> Path:
+    """
+    If a pyssianutils app data exists return it. Otherwise return a suitable 
+    path for its creation.
+
+    Parameters
+    ----------
+    use_home : bool
+        For Linux, to facilitate the access to the configuration files or 
+        the templates stored in the app data a True value of this parameter 
+        will favor returning a $HOME/.pyssianutils location instead of the 
+        XDG recommended one in $HOME/.local/shared/pyssianutils.
+
+    Returns
+    -------
+    Path
+        path to the app data folder if it exists. Otherwise returns a suitable
+        path for it.
+
+    Raises
+    ------
+    RuntimeError
+        Two pyssianutils appdata directories were found
+    """
     system = platform.system()
     if system == 'Linux':
         home_path = Path.home()/'.pyssianutils'
@@ -34,7 +62,16 @@ def get_appdir(use_home=True) -> Path:
     return Path(platformdirs.user_data_dir(str(__package__)))
 
 @cache
-def get_resourcesdir() -> Path: 
+def get_resourcesdir() -> Path:
+    """
+    Returns the path to the resources as they were installed. Files in this 
+    directory should not be changed and are removed upon pip uninstall.  
+
+    Returns
+    -------
+    Path
+        path to the resources folder.
+    """
     resourcesdir = importlib.resources.files(__package__)/'resources'
     return resourcesdir
 def pack_appdir(appdir:Path,target:Path=Path(f'{PKGDEFAULTNAME}.tar')):
@@ -55,11 +92,28 @@ def unpack_appdir(ifile:Path,location:Path):
     tar.close()
 @cache
 def check_initialization():
+    """
+    Ensures that pyssianutils was initialized. If it was not it errors.
+
+    Raises
+    ------
+    RuntimeError
+        pyssianutils was not initialized
+    """
     appdir = get_appdir()
     if not appdir.exists(): 
         raise RuntimeError(f"{appdir} does not exist. Please ensure to run pyssianutils 'init'")
 @cache
 def load_app_defaults() -> configparser.ConfigParser:
+    """
+    Looks for the configuration files in the resources and in the user's app 
+    directory, loads and returns them
+
+    Returns
+    -------
+    configparser.ConfigParser
+        configuration defaults of pyssianutils for a given user
+    """
     defaults = configparser.ConfigParser()
     # Order is important as we want to override any packaged defaults with the
     # User's defaults

@@ -9,12 +9,28 @@ from pathlib import Path
 from ._version import __version__
 from pyssian.gaussianclasses import GaussianOutFile
 
+from typing import Callable
+
 # Core functions/Gobals for pyssianutils command line inner workings
 MAINS = dict()
-def register_main(f,name=None):
-    # assume all functions that will be be decorated 
-    # to create the corresponding MAINS are 
-    # main_{command}
+def register_main(f:Callable,name:None|str=None) -> Callable:
+    """
+    Function used to store the main functions of each command of pyssianutils,
+    abstracting it from how it is actually stored. 
+
+    Parameters
+    ----------
+    f : Callable
+        any function to be stored
+    name : None | str, optional
+        name used to store the function. If none is provided it will assume that
+        the function name follows the convention "{something}_name", by default None
+
+    Returns
+    -------
+    Callable
+        The function that was added. Allows the usage of register_main as a decorator.
+    """
     if name is None: 
         command = f.__name__.split('_')[1]
     else:
@@ -22,7 +38,16 @@ def register_main(f,name=None):
     MAINS[command] = f
     return f
 
-def create_parser()-> tuple[argparse.ArgumentParser,argparse._SubParsersAction]: 
+def create_parser()-> tuple[argparse.ArgumentParser,argparse._SubParsersAction]:
+    """
+    Creates the highest-level parser of the pyssianutils as well as the 
+    _SubparsersAction to which each subparser must be added.
+
+    Returns
+    -------
+    tuple[argparse.ArgumentParser,argparse._SubParsersAction]
+        parser,subparsers
+    """
     parser = argparse.ArgumentParser(description=__doc__,prog='pyssianutils')
     parser.add_argument('--version', action='version', version=f'pyssianutils {__version__}')
     subparsers = parser.add_subparsers(help='sub-command help',dest='command')
@@ -97,22 +122,35 @@ SCFCYCLE_PATTERN = re.compile(r'^\sE=\s?(-?[0-9]*\.[0-9]*)\s*Delta',re.MULTILINE
 # Class utils
 class DirectoryTree(object):
     """
-    Class that provides recursive file iteration search and iteration.
+    Class that provides recursive file iteration search, iteration and recursive
+    creation of directories following the same structure as the original one.
     """
-    def __init__(self,path,in_suffix,out_suffix):
+    def __init__(self,path:str|Path|os.PathLike,in_suffix:str,out_suffix:str):
         self.root = Path(path)
         self.cwd = Path(os.getcwd())
         self.newroot = self.root
         self.in_suffix = in_suffix
         self.out_suffix = out_suffix
-    def set_newroot(self,newroot):
+    def set_newroot(self,newroot:str|Path|os.PathLike):
         self.newroot = Path(newroot)
 
-    def newpath(self,path):
+    def newpath(self,path:str|Path|os.PathLike) -> Path:
         """
         Takes a path rooted to the previous root and prepares it to be
         rooted in the new root.
+
+        Parameters
+        ----------
+        path : str | Path | os.PathLike
+            path to a file relative to the DirectoryTree's root
+
+        Returns
+        -------
+        Path
+            path of the file as if it was relative to the newroot instead of 
+            the root
         """
+        
         return self.newroot.joinpath(path.relative_to(self.root))
 
     @staticmethod
@@ -129,8 +167,8 @@ class DirectoryTree(object):
         path : Path
             Path pointing to a directory.
         key : function
-            A function that returns a boolean. Used in a similar function as
-            the 'sorted' python builtin.
+            A function that returns a boolean. Used in a similar fashion as
+            the key paramer of the 'sorted' python builtin.
         """
         cls = DirectoryTree
         if key is None:
@@ -175,15 +213,30 @@ class DirectoryTree(object):
         return _iter
 
     def create_folders(self):
+        """
+        Creates the folders of a new Directory tree, rooted in self.newroot
+        instead of self.root
+        """
         for folder in self.folders:
             newpath = self.newpath(folder)
             newpath.mkdir(parents=True,exist_ok=True)
 
 # General Utils
-def write_2_file(filepath:Path):
+def write_2_file(filepath:Path) -> Callable[[str],None]:
     """
     Creates a wrapper for appending text to a certain File. Assumes that each
     call is equivalent to writing a single line.
+
+    Parameters
+    ----------
+    filepath : Path
+        file where the output will be appended.
+
+    Returns
+    -------
+    Callable[[str],None]
+        a function where each call writes the text and attaches a newline at 
+        the end of it.
     """
     def Writer(txt):
         with open(filepath,'a') as F:
@@ -192,7 +245,7 @@ def write_2_file(filepath:Path):
     return Writer
 
 # GaussianOutFile utils
-def thermochemistry(GOF:GaussianOutFile) -> tuple[float|None]:
+def thermochemistry(GOF:GaussianOutFile) -> tuple[float|None,float|None,float|None]:
     """
     Returns the Zero Point Energy, Enthalpy and Free Energy
     from a frequency calculation.
@@ -200,11 +253,13 @@ def thermochemistry(GOF:GaussianOutFile) -> tuple[float|None]:
     Parameters
     ----------
     GOF : GaussianOutFile
+        Gaussian Output File Instance. (It assumes that previously the .read()
+        or .update() methods have been used)
 
     Returns
     -------
-    tuple
-        (Z, H, G)
+    tuple[float|None,float|None,float|None]
+        Zero point energy, Enthalpy, Free Energy
     """
     Link = GOF[-1].get_links(716)[-1]
     Z = Link.zeropoint[-1]
@@ -320,7 +375,7 @@ def potential_energies(GOF:GaussianOutFile,method:str='default',withscf:bool=Fal
     return energies
 
 # Console Utils
-def print_convergence(GOF,JobId,Last=False):
+def print_convergence(GOF:GaussianOutFile,JobId:int,Last:bool=False):
     """
     Displays the Convergence parameters for a certain InternalJob of a
     GaussianOutFile.
@@ -341,7 +396,7 @@ def print_convergence(GOF,JobId,Last=False):
         for i,L in enumerate(GOF[JobId].get_links(103)):
             print(i)
             L.print_convergence()
-def print_thermo(GOF):
+def print_thermo(GOF:GaussianOutFile):
     """
     Prints in the console the thermochemistry of a GaussianOutFile.
 
