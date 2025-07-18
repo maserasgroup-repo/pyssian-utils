@@ -2,3 +2,4 @@ Sphinx
 sphinx-rtd-theme
 sphinxcontrib-napoleon
 pygments
+pyyaml
