@@ -24,60 +24,9 @@ DEFAULT_SP_MARKER = DEFAULTS['input.asinput']['sp_marker']
 DEFAULT_SOFTWARE = DEFAULTS['input.asinput']['software']
 DEFAULT_SCRIPTNAME = DEFAULTS['input.asinput']['script_name']
 
-Queue = namedtuple('Queue','nprocesors memory'.split())
-QUEUES = {4:Queue(4,8),8:Queue(8,24),
-          12:Queue(12,24),
-          16:Queue(16,32),
-          20:Queue(20,48),
-          24:Queue(24,128),28:Queue(28,128),
-          36:Queue(36,192),'q4':Queue('q4',4)}
-
 class NotFoundError(RuntimeError):
     pass
 
-# Utility Functions
-def submitline(filepath:Path,software:str) -> str:
-    """
-    Inspects the file, selects the queue and returns the string that corresponds
-    to the submission of the calculation to a queue system.
-
-    Parameters
-    ----------
-    File : Path
-        pathlib.Path pointing towards the input file to submit.
-    software : str
-        either 'g09' or 'g16'
-
-    Returns
-    -------
-    str
-
-    """
-    command = 'qs {0}.c{1.nprocesors}m{1.memory} {2};'
-    with open(filepath,'r') as F:
-        lines = [line.strip() for line in F]
-    # Find nproc
-    for line in lines:
-        if 'nproc' in line:
-            nprocs = int(line.strip().split("=")[-1])
-            break
-    else:
-        raise NotFoundError(f'nproc not found in {filepath}')
-    # Find Mem
-    for line in lines:
-        if '%mem' in line:
-            memory = int(line.strip().split("=")[-1][:-2])
-            if line.strip().lower().endswith('gb'):
-                memory *= 1024
-            break
-    if nprocs == 4 and software == 'g16':
-        queue = QUEUES['q4']
-    elif nprocs == 4 and memory < 4000:
-        queue = QUEUES['q4']
-    else:
-        queue = QUEUES[nprocs]
-    txt = command.format(software,queue,filepath.name)
-    return txt
 def prepare_filepaths(
                       filepaths:list[str|Path],
                       outdir:str|Path|None,
@@ -237,29 +186,6 @@ def prepare_tail(filepath:Path|None) -> str|None:
         _ = aux.pop(-1)
     
     return '\n'.join(aux)
-def create_hpc_submission_script(files:list[Path],
-                                 software:str|None='g16',
-                                 script:str|Path='submitscript.sh'): 
-    # Now create the submit script
-    lines = ['#!/bin/bash\n',
-             '# Automated Submit Script\n'
-             f'BASEDIR=$PWD;']
-    
-    files = [(f.parent,f) for f in files]
-    files.sort(key=lambda x: x[0])
-
-    for folder,group in groupby(files,key=lambda x: x[0]):
-        lines.append(f'echo "moving to {folder}";')
-        lines.append(f'cd {folder};')
-        items = list(group)
-        for item in items:
-            lines.append(submitline(item[1],software))
-        lines.append('cd ${BASEDIR};')
-    lines.append('echo "Finished submiting calculations";')
-
-    with open(script,'w') as F:
-        F.write('\n'.join(lines))
-
 
 # Parser and Main Definition
 __doc__ = __doc__.format(in_suffix=GAUSSIAN_INPUT_SUFFIX)
@@ -349,30 +275,6 @@ parser.add_argument('--add-text',
 parser.add_argument('--suffix',
                     default=DEFAULT_SUFFIX,nargs=2,
                     help="""Input and output suffix used for gaussian files""")
-script_group = parser.add_mutually_exclusive_group()
-if DEFAULTS['input.asinput'].getboolean('generate_script'): 
-    script_group.add_argument('--no-submit',
-                            dest='do_submit',
-                            default=True,action='store_false',
-                            help=f"""Do not create a {DEFAULT_SCRIPTNAME} file in the 
-                            current directory""")
-else:
-    script_group.add_argument('--submit',
-                            dest='do_submit',
-                            default=False,action='store_true',
-                            help=f"""Do not create a {DEFAULT_SCRIPTNAME} file in the 
-                            current directory""")
-script_group.add_argument('--scriptname',
-                        dest='script_name',
-                        default=DEFAULT_SCRIPTNAME,
-                        help=f"""Name of the script generated to submit the
-                        calculations""")
-parser.add_argument('--software',
-                    choices=['g09','g16'],default=DEFAULT_SOFTWARE,
-                    help=f"""Version of gaussian to which the calculations
-                    will be sent. Only affects the submission script if 
-                    generated. 
-                    'qs {DEFAULT_SOFTWARE}.queue.q file{GAUSSIAN_INPUT_SUFFIX}'""")
 
 def main(
          files:list[str|Path],
@@ -390,9 +292,6 @@ def main(
          is_inplace:bool=False,
          do_overwrite:bool=False,
          tail:Path|str|None=None,
-         do_submit:bool=False,
-         software:str|None=DEFAULT_SOFTWARE,
-         script_name:str=DEFAULT_SCRIPTNAME,
          ):
 
     # Prepare Tail
@@ -479,8 +378,3 @@ def main(
 
         gif.write(ofile)
         final_files.append(ofile)
-
-    if do_submit:
-        create_hpc_submission_script(final_files,
-                                     software,
-                                     script_name)
