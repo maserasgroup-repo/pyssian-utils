@@ -26,7 +26,7 @@ else:
 BOHR2ANGS = 5.29177210544E-1 # Source: https://physics.nist.gov/cgi-bin/cuu/Value?bohrrada0
 DEFAULTS = load_app_defaults()
 DEFAULT_OUTFILE = Path(DEFAULTS['plot.property']['outfile'])
-DEFAULT_PLOT = Path(DEFAULTS['plot.property']['default_plot'])
+DEFAULT_PLOT = DEFAULTS['plot.property']['default_plot']
 DEFAULT_COLOR = DEFAULTS['plot.property']['color']
 
 # Utility functions

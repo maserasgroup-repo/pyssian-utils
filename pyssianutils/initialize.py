@@ -114,7 +114,7 @@ def load_app_defaults() -> configparser.ConfigParser:
     configparser.ConfigParser
         configuration defaults of pyssianutils for a given user
     """
-    defaults = configparser.ConfigParser(inline_comment_prefixes=('#',))
+    defaults = configparser.ConfigParser(inline_comment_prefixes=(';',))
     # Order is important as we want to override any packaged defaults with the
     # User's defaults
     defaults.read([get_resourcesdir()/'defaults.ini',
