@@ -124,23 +124,24 @@ def load_app_defaults() -> configparser.ConfigParser:
 # Main APIs 
 init_description = """
 Should be run after a fresh installation. Creates the local 
-directories where the user defaults and will application data will be stored
+directories where the user's app data and defaults will be stored
 """
 
 init_parser = argparse.ArgumentParser(description=init_description)
-init_parser.add_argument("--unpack",metavar='PACKAGE',dest='package',
-                        help=""" package containing the configuration of a 
-                        previous pyssianutils setup. Obtained through 
-                        'pyssianutils pack myfile.pack' """,default=None)
+init_parser.add_argument("--unpack",
+                         metavar='PACKAGE',dest='package',default=None,
+                         help="package containing the configuration of a " 
+                         "previous pyssianutils setup. Obtained through "
+                         "'pyssianutils pack myfile.pack'")
 init_parser.add_argument("--force",action='store_true',default=False,
-                        help="""overwrite any previous pyssianutils 
-                        application data if it already existed""")
+                        help="overwrite any previous pyssianutils "
+                        "application data if it already existed")
 if platform.system() == 'Linux': 
     init_parser.add_argument('--xdg-default-appdir',
                              dest='use_home',default=True,action='store_false',
-                             help="""If enabled it will store pyssianutils data
-                             at $HOME/.local/share/pyssianutils instead of 
-                             at $HOME/.pyssianutils""")
+                             help="If enabled it will store pyssianutils data "
+                             "at $HOME/.local/share/pyssianutils instead of "
+                             "at $HOME/.pyssianutils")
 else:
     init_parser.set_defaults(use_home=False)
 
@@ -167,10 +168,10 @@ def init_main(
         shutil.copy(resources/'defaults.ini',appdir)
         shutil.copytree(resources/'templates',appdir/'templates')
 
-clean_description = """
-Removes the app data files and local directory where the pyssianutils data was 
-stored. This is recommended before uninstalling the software
-"""
+clean_description = (
+"Removes the app data files and local directory where the pyssianutils data was"
+" stored. This is recommended before uninstalling the software"
+)
 
 clean_parser = argparse.ArgumentParser(description=clean_description)
 
@@ -182,46 +183,45 @@ def clean_main():
     except FileNotFoundError: 
         warnings.warn(f'pyssianutils installation at {appdir} was not found so nothing to clean')
 
-pack_description = """
-Packages the user app data into a tar file that can be used by pyssianutils init
-to simplify exporting the user defaults and templates to a new machine.
-"""
+pack_description = (
+"Packages the user app data into a tar file that can be used by pyssianutils init "
+"to simplify exporting the user defaults and templates to a new machine."
+)
 pack_parser = argparse.ArgumentParser(description=pack_description)
 pack_parser.add_argument('name',nargs='?',
                          default=PKGDEFAULTNAME,
-                         help="""name of the file that will contain the user's configuration""")
+                         help="name of the file that will contain the user's configuration")
 pack_parser.add_argument('--outputdir','-O',
                          default=Path.cwd(),
-                         help="""Directory where the file will be created. 
-                         Defaults to the CWD""")
+                         help="Directory where the file will be created. "
+                         "Defaults to the CWD")
 def pack_main(name:str,
               outputdir:Path):
 
     appdir = get_appdir()
     pack_appdir(appdir,target=outputdir/f'{name}.tar')
 
-defaults_description = """
-Allows the display of default values and their modification from the command line.
-"""
+defaults_description = (
+"Allows the display of default values and their modification from the command line."
+)
 
 defaults_parser = argparse.ArgumentParser(description=defaults_description)
 defaults_subparsers = defaults_parser.add_subparsers(help='sub-command help',dest='subcommand')
 show_subparser = defaults_subparsers.add_parser('show',
-                                                help="""Prints in the console the
-                                                avaliable/selected default parameters
-                                                and/or sections in which those 
-                                                parameters are grouped""")
+                                                help="Prints in the console the "
+                                                "avaliable/selected default parameters "
+                                                "and/or sections in which those "
+                                                "parameters are grouped")
 show_subparser.add_argument('parameter',
                             nargs='?', default=None,
-                            help="""name of the parameter whose value should 
-                            be displayed. 'all' will show all parameters.""")
+                            help="name of the parameter whose value should "
+                            "be displayed. 'all' will show all parameters.")
 show_subparser.add_argument('--section',
                             default=None,
-                            help="""Allows to filter the parameters for a 
-                            single section. If no section, no parameter 
-                            and nbo other flag is requested. 
-                            A list of the sections available will be 
-                            displayed.""")
+                            help="Allows to filter the parameters for a "
+                            "single section. If no section, no parameter "
+                            "and no other flag is requested a list of the "
+                            "sections available will be displayed.")
 show_subparser.add_argument('--all',
                             dest='show_all',
                             default=False,action='store_true',
@@ -238,17 +238,17 @@ set_subparser.add_argument('value',
                             help="value to set in the parameter")
 set_subparser.add_argument('--section',
                             default=None,
-                            help="""Section of the parameter. If none provided
-                            it will attempt to guess it. From guessing it if 
-                            there is only one parameter with the provided name
-                            it will set the new value. Otherwise it will refuse 
-                            and will show the sections containing that parameter 
-                            name""")
+                            help="Section of the parameter. If none provided "
+                            "it will attempt to guess it. From guessing it if "
+                            "there is only one parameter with the provided name "
+                            "it will set the new value. Otherwise it will refuse "
+                            "and will show the sections containing that parameter "
+                            "name")
 set_subparser.add_argument('--all',
                             dest='update_all',
                             default=False,action='store_true',
-                            help="""If enabled it forces the update on all 
-                            parameters with the same name""")
+                            help="If enabled it forces the update on all "
+                            "parameters with the same name")
 
 def defaults_main(subcommand:str,
                  **kwargs):
@@ -273,42 +273,40 @@ def _defaults_show(parameter:str|None,
             print(f'    user defaults (free to modify): Not Found, please run "pyssianutils init"')
         return
     
-    if parameter is not None and show_all:
-        raise argparse.ArgumentError('specifying a parameter is not compatible with the --all flag')
-    
-    if parameter is None and section is not None and not show_all:
-        raise argparse.ArgumentError('specifying only a --section also requires the --all flag')
-    
     defaults = load_app_defaults()
-    if parameter is None and section is None and show_all:
+    if parameter is None and section is None:
         for s in defaults.sections():
-            print(f'[{s}]')
-            for k in defaults.options(s):
-                print(f'    {k} = {defaults[s][k]}')
-    elif parameter is None and section is None: 
-        for s in defaults.sections():
-            print(f'[{s}]')
-    elif parameter is None and show_all:
-        if section not in defaults.sections():
-            error_msg = f"section={section} not in defaults. " \
-                "Please run 'pyssian default show  """.strip()
-            raise ValueError(error_msg)
-
-        for k in defaults.options(section):
-            print(f'{k} = {defaults[section][k]}')
-    elif parameter is not None and section is None:
+            _show_section(s)
+            if show_all:
+                _show_section_keywords(defaults,s)
+    
+    elif section is not None:
+        _check_section(defaults,section)
+        if parameter is None:
+            _show_section_keywords(defaults,section,indentation=0)
+        elif parameter in defaults.options(section):
+            _show_keyword(parameter,defaults[section][parameter],indentation=0)
+        else:
+            raise ValueError(f'parameter "{parameter}" is not in section "{section}"')
+    else:
         for s in defaults.sections():
             if parameter in defaults.options(s):
-                print(f'[{s}]')
-                print(f'    {parameter} = {defaults[s][parameter]}')
-    elif parameter is None and section is not None:
-        if section not in defaults.sections():
-            error_msg = f"subsection={section} not in defaults. " \
-                "Please run 'pyssian default show  """.strip()
-            raise ValueError(error_msg)
-        print(f'[{section}]')
-        for k in defaults.options(s):
-            print(f'    {k} = {defaults[s][k]}')
+                _show_section(s)
+                _show_keyword(parameter,defaults[s][parameter])
+
+def _check_section(defaults,section): 
+    if section not in defaults.sections():
+        msg = f"subsection={section} not in defaults. Please run 'pyssianutils default show'"
+        raise ValueError(msg)
+def _show_section(section,indentation=0):
+    spacer = ' '*4
+    print(f'{indentation*spacer}[{section}]')
+def _show_keyword(keyword,value,indentation=1): 
+    spacer = ' '*4
+    print(f'{indentation*spacer}{keyword} = {value}')
+def _show_section_keywords(defaults,section,indentation=1):
+    for k in defaults.options(section):
+        _show_keyword(k,defaults[section][k],indentation=indentation)
 
 def _defaults_set(parameter:str,
                  value:str,
