@@ -1,12 +1,13 @@
-============
+############
 pyssianutils
-============
+############
+
+
+***********************************************************************
+A command line toolkit for common tasks involving Gaussian Calculations
+***********************************************************************
 
 .. project-description-start
-
------------------------------------------------------------------------
-A command line toolkit for common tasks involving Gaussian Calculations
------------------------------------------------------------------------
 
 This project is a repository of command-line tools developed using 
 `pyssian <https://github.com/maserasgroup-repo/pyssian>`_ to facilitate the 
@@ -18,7 +19,7 @@ calculations or even plotting that information.
 .. project-description-end
 
 How to cite
------------
+===========
 
 .. citation-start
 
@@ -32,7 +33,7 @@ pyssian library using the DOI at the following address:
 .. citation-end
 
 Getting Started
----------------
+===============
 
 .. setup-instructions
 
@@ -40,7 +41,7 @@ These instructions will get you a copy of the project up and running on your
 local machine.
 
 Prerequisites
-.............
+-------------
 
 - python >= 3.8 (Developed with python 3.12)
 - python library: setuptools
@@ -51,7 +52,7 @@ Prerequisites
 - python library: plotly (optional)
 
 Installing pyssian-utils
-........................
+------------------------
 
 Get the source code either git or download and unpack it into "pyssian-utils"
 
@@ -80,7 +81,7 @@ pyssianutils. We need to initialize pyssianutils for the user:
    $ pyssianutils init
 
 Future installation (Soon to be available)
-++++++++++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Basic installation 
 
@@ -101,7 +102,7 @@ Finally we ensure that pyssianutils is initialized:
    $ pyssianutils init
 
 Uninstalling pyssianutils
-..........................
+-------------------------
 
 .. note:: 
 
@@ -116,15 +117,16 @@ Uninstalling pyssianutils
    $ python -m pip uninstall pyssianutils
 
 Developed with
---------------
+==============
 
 - python 3.12
 - Ubuntu 22.04 LTS
 
-.. examples-msg
 
 Examples
---------
+========
+
+.. examples-msg
 
 Please open the Examples.rst in github to visualize the basic usage examples
 or read the documentation.
@@ -132,13 +134,13 @@ or read the documentation.
 .. project-author-license
 
 Authors
--------
+=======
 
 * **Raúl Pérez-Soto** - [rperezsoto](https://github.com/rperezsoto)
 * **Maria Besora** - [MaBeBo](https://github.com/MaBeBo)
 * **Feliu Maseras** - [maserasgroup](https://github.com/maserasgroup)
 
 License
--------
+=======
 
 pyssianutils is freely available under an [MIT](https://opensource.org/licenses/MIT)
