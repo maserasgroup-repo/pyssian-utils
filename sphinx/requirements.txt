@@ -3,3 +3,5 @@ sphinx-rtd-theme
 sphinxcontrib-napoleon
 pygments
 pyyaml
+sphinx-argparse
+sphinx-copybutton
