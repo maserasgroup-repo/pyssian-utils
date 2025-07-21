@@ -38,7 +38,7 @@ def parse_gaussianfile(ifile:str|Path,
     
     ifile = Path(ifile)
 
-    U,Z,H,G = '', '', '', ''
+    E,Z,H,G = '', '', '', ''
 
     with GaussianOutFile(ifile,[1,120,502,508,716,804,913,9999]) as GOF:
             GOF.read()
@@ -46,14 +46,14 @@ def parse_gaussianfile(ifile:str|Path,
     if method is None:
         method = guess_method(GOF)
 
-    U = potential_energy(GOF,method)
+    E = potential_energy(GOF,method)
     
-    if U is None and not verbose: 
-        U = ''
+    if E is None and not verbose: 
+        E = ''
     elif verbose:
         raise RuntimeError(f'Potential Energy not found in file {ifile.name}')
     else: 
-        U = number_fmt.format(U)
+        E = number_fmt.format(E)
     
     try:
         Z,H,G = thermochemistry(GOF)
@@ -65,7 +65,7 @@ def parse_gaussianfile(ifile:str|Path,
     if H: H = number_fmt.format(H)
     if G: G = number_fmt.format(G)
 
-    return U, Z, H, G
+    return E, Z, H, G
 
 # Parser and Main definition
 parser = argparse.ArgumentParser(description=__doc__)
@@ -127,7 +127,7 @@ def main(files:list[str],
     line_fmt = spacer.join([name_format,]+[value_fmt,]*4)
 
     # Write table header
-    write_output(line_fmt.format(name_format.format('File'),'U','Z','H','G'))
+    write_output(line_fmt.format(name_format.format('File'),'E','Z','H','G'))
 
     # Actual parsing
     for ifile in files:
@@ -140,7 +140,7 @@ def main(files:list[str],
         with GaussianOutFile(filepath,[1,120,502,508,716,804,913,9999]) as GOF:
             GOF.read()
         
-        U,Z,H,G = parse_gaussianfile(filepath, 
+        E,Z,H,G = parse_gaussianfile(filepath, 
                                      number_fmt,
                                      method,
                                      verbose)
@@ -149,4 +149,4 @@ def main(files:list[str],
         if only_stem:
             name = filepath.stem
 
-        write_output(line_fmt.format(name,U,Z,H,G))
+        write_output(line_fmt.format(name,E,Z,H,G))

@@ -39,14 +39,14 @@ def parse_gaussianfile(ifile:str|Path,
     
     method = guess_method(GOF)
 
-    U = potential_energy(GOF,method)
+    E = potential_energy(GOF,method)
     
-    if U is None and not verbose: 
+    if E is None and not verbose: 
         return ''
     elif verbose:
         raise RuntimeError(f'Potential Energy not found in file {ifile.name}')
 
-    return number_fmt.format(U)
+    return number_fmt.format(E)
 
 # Parser and Main Definition
 parser = argparse.ArgumentParser(description=__doc__)
@@ -107,8 +107,8 @@ def main(
             write_output('')
             continue
         
-        U = parse_gaussianfile(ifile,
+        E = parse_gaussianfile(ifile,
                                number_fmt,
                                verbose)
         
-        write_output(line_fmt.format(str(ifile),U))
+        write_output(line_fmt.format(str(ifile),E))

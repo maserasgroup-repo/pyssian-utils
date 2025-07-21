@@ -41,7 +41,7 @@ def parse_gaussianfile(ifile:str|Path,
     
     ifile = Path(ifile)
 
-    U,Z,H,G = '', '', '', ''
+    E,Z,H,G = '', '', '', ''
 
     with GaussianOutFile(ifile,[1,120,502,508,716,804,913,9999]) as GOF:
             GOF.read()
@@ -49,14 +49,14 @@ def parse_gaussianfile(ifile:str|Path,
     if method is None:
         method = guess_method(GOF)
 
-    U = potential_energy(GOF,method)
+    E = potential_energy(GOF,method)
     
-    if U is None and not verbose: 
-        U = ''
+    if E is None and not verbose: 
+        E = ''
     elif verbose:
         raise RuntimeError(f'Potential Energy not found in file {ifile.name}')
     else: 
-        U = number_fmt.format(U)
+        E = number_fmt.format(E)
     
     try:
         Z,H,G = thermochemistry(GOF)
@@ -69,7 +69,7 @@ def parse_gaussianfile(ifile:str|Path,
     if G: G = number_fmt.format(G)
 
     if pattern is None: # If no pattern is provided assume no SP info should be provided
-        return U, Z, H, G, '', ''
+        return E, Z, H, G, '', ''
     
     # now try to guess a SP 
 
@@ -77,7 +77,7 @@ def parse_gaussianfile(ifile:str|Path,
     sp_candidate = ifile.with_stem(new_stem)
     
     if not sp_candidate.exists(): # if no file is found do not provide SP corrections
-        return U, Z, H, G, '', ''
+        return E, Z, H, G, '', ''
 
     with GaussianOutFile(sp_candidate,[1,120,502,508,716,804,913,9999]) as GOF_sp:
             GOF_sp.read()
@@ -93,13 +93,13 @@ def parse_gaussianfile(ifile:str|Path,
         U_sp = number_fmt.format(U_sp)
     
     try:
-        G_sp = float(U_sp) + (float(G) - float(U))
+        G_sp = float(U_sp) + (float(G) - float(E))
     except ValueError: 
         G_sp = ''
     else:
         G_sp = number_fmt.format(G_sp)
     
-    return U, Z, H, G, U_sp, G_sp
+    return E, Z, H, G, U_sp, G_sp
 
 # Parser and Main definition
 parser = argparse.ArgumentParser(description=__doc__)
@@ -181,11 +181,11 @@ def main(files:list[str],
         line_fmt = spacer.join([name_format,]*2+[value_fmt,]*6)
         write_output(line_fmt.format(f'{{: ^{n}}}'.format('File'),
                                      f'{{: ^{n}}}'.format('File_SP'),
-                                     'U','Z','H','G','U(SP)','G(final)'))
+                                     'E','Z','H','G','E(SP)','G(final)'))
     else:
         line_fmt = spacer.join([name_format,]+[value_fmt,]*4)
         write_output(line_fmt.format(f'{{: ^{n}}}'.format('File'),
-                                     'U','Z','H','G'))
+                                     'E','Z','H','G'))
 
     # Actual parsing
     for ifile in files:
@@ -200,7 +200,7 @@ def main(files:list[str],
         if not with_sp:
             pattern = method_sp = None
 
-        U,Z,H,G,U_sp,G_sp = parse_gaussianfile(filepath,
+        E,Z,H,G,U_sp,G_sp = parse_gaussianfile(filepath,
                                                number_fmt,
                                                pattern,
                                                method,
@@ -212,7 +212,7 @@ def main(files:list[str],
         else:
             ifile_sp = ''
         
-        U,Z,H,G,U_sp,G_sp = map(value_fmt.format,[U,Z,H,G,U_sp,G_sp])
+        E,Z,H,G,U_sp,G_sp = map(value_fmt.format,[E,Z,H,G,U_sp,G_sp])
 
         name = ifile
         name_sp = ifile_sp
@@ -221,9 +221,9 @@ def main(files:list[str],
                 name = filepath.stem
                 name_sp = Path(ifile_sp).stem
 
-            write_output(line_fmt.format(name,name_sp,U,Z,H,G,U_sp,G_sp))
+            write_output(line_fmt.format(name,name_sp,E,Z,H,G,U_sp,G_sp))
         else:
             if only_stem: 
                 name = filepath.stem
             
-            write_output(line_fmt.format(name,U,Z,H,G))
+            write_output(line_fmt.format(name,E,Z,H,G))
