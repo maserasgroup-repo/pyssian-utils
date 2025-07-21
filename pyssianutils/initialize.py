@@ -104,10 +104,16 @@ def check_initialization():
     if not appdir.exists(): 
         raise RuntimeError(f"{appdir} does not exist. Please ensure to run pyssianutils 'init'")
 @cache
-def load_app_defaults() -> configparser.ConfigParser:
+def load_app_defaults(only_resources:bool=False) -> configparser.ConfigParser:
     """
     Looks for the configuration files in the resources and in the user's app 
     directory, loads and returns them
+
+    Parameters
+    ----------
+    only_resources : bool, optional
+        If True, it ignores the defaults of the user and returns the ones 
+        that came packaged with pyssianutils, by default False
 
     Returns
     -------
@@ -117,8 +123,11 @@ def load_app_defaults() -> configparser.ConfigParser:
     defaults = configparser.ConfigParser(inline_comment_prefixes=(';',))
     # Order is important as we want to override any packaged defaults with the
     # User's defaults
-    defaults.read([get_resourcesdir()/'defaults.ini',
-                   get_appdir()/'defaults.ini'])
+    if only_resources: 
+        defaults.read([get_resourcesdir()/'defaults.ini'])
+    else:
+        defaults.read([get_resourcesdir()/'defaults.ini',
+                       get_appdir()/'defaults.ini'])
     return defaults
 
 # Main APIs 
@@ -250,6 +259,26 @@ set_subparser.add_argument('--all',
                             help="If enabled it forces the update on all "
                             "parameters with the same name")
 
+reset_subparser = defaults_subparsers.add_parser('reset',
+                                               help="resets the value of a default")
+reset_subparser.add_argument('parameter',
+                             nargs='?',default=None,
+                             help="name of the parameter whose value should reset. "
+                             "If none is provided it will reset all user defaults")
+reset_subparser.add_argument('--section',
+                             default=None,
+                             help="Section of the parameter. If none provided "
+                             "it will attempt to guess it. From guessing it if "
+                             "there is only one parameter with the provided name "
+                             "it will set the new value. Otherwise it will refuse "
+                             "and will show the sections containing that parameter "
+                             "name")
+reset_subparser.add_argument('--all',
+                             dest='update_all',
+                             default=False,action='store_true',
+                             help="If enabled it forces the update on all "
+                             "parameters with the same name")
+
 def defaults_main(subcommand:str,
                  **kwargs):
     
@@ -258,6 +287,9 @@ def defaults_main(subcommand:str,
     
     if subcommand == 'set': 
         _defaults_set(**kwargs)
+
+    if subcommand == 'reset':
+        _defaults_reset(**kwargs)
 
 def _defaults_show(parameter:str|None,
                   section:str|None,
@@ -346,3 +378,49 @@ def _defaults_set(parameter:str,
     with open(defaults_filepath,'w') as F: 
         defaults.write(F)
 
+def _defaults_reset(parameter:str|None=None,
+                    section:str|None=None,
+                    update_all:bool=False):
+    
+    appdir = get_appdir()
+    defaults_filepath = appdir/'defaults.ini'
+    
+    defaults = load_app_defaults()
+    defaults_base = load_app_defaults(only_resources=True)
+
+    matches = []
+    if section is None and parameter is None:
+        for s in defaults.sections():
+            for p in defaults.options(s):
+                matches.append((s,p))
+    elif parameter is None: 
+        for p in defaults.options(section):
+            matches.append((section,p))
+    elif section is None:
+        for s in defaults.sections():
+            if parameter in defaults.options(s): 
+                matches.append((s,parameter))
+    else:
+        if parameter in defaults.options(section): 
+            matches.append((section,parameter))
+    
+    if len(matches) == 0: 
+        raise ValueError(f'parameter={parameter} does not exist')
+    elif len(matches) > 1 and parameter is not None and not update_all:
+        print(f'parameter={parameter} is present in more than one section:')
+        print('\n'.join([f'    {s}' for s,_ in matches]))
+        warnings.warn('The program cowardly refused to update the defaults values')
+    elif len(matches) > 1: 
+        for s,p in matches:
+            value = defaults_base[s][p]
+            print(f'    resetting [{s}][{p}] = {value}')
+            defaults[s][p] = value
+    else:
+        s,p = matches[0]
+        value = defaults_base[s][p]
+        print(f'    resetting [{s}][{p}] = {value}')
+        defaults[s][p] = value
+
+    print('storing new defaults')
+    with open(defaults_filepath,'w') as F: 
+        defaults.write(F)
