@@ -2,7 +2,7 @@
 
 """
 Generates an xyz file from the provided gaussian files. For output files, it 
-extracts the last geometry (unless --step is specified). This script is meant 
+extracts the last geometry (unless --step is specified). This util is meant 
 for quick inspections of gaussian outputs using other GUI tools such as jmol. 
 """
 
@@ -18,7 +18,6 @@ DEFAULTS = load_app_defaults()
 GAUSSIAN_IN_SUFFIXES = DEFAULTS['common']['gaussian_in_suffixes'][1:-1].split(',')
 GAUSSIAN_OUT_SUFFIXES = DEFAULTS['common']['gaussian_out_suffixes'][1:-1].split(',')
 DEFAULT_OUTFILE = Path(DEFAULTS['toxyz']['outfile'])
-
 # Utility Functions
 def select_input_files(files,is_listfile=False): 
     if is_listfile:
@@ -59,19 +58,19 @@ parser.add_argument('files',help='Gaussian Input/Output Files',nargs='+')
 parser.add_argument('-l','--listfile',
                     dest='is_listfile',
                     action='store_true',default=False,
-                    help="""When enabled instead of considering the files 
-                    provided as the gaussian output files considers the file 
-                    provided as a list of gaussian output files""")
+                    help="When enabled instead of considering the files "
+                    "provided as the gaussian output files considers the file "
+                    "provided as a list of gaussian output files")
 parser.add_argument('-o','--outfile',
                     type=Path,
                     default=DEFAULT_OUTFILE,
-                    help="""Name of the xyz file with all the provided 
-                    geometries sorted by filename""")
+                    help="Name of the xyz file with all the provided "
+                    "geometries sorted by filename")
 parser.add_argument('--step',
                     default=None, type=int,
-                    help=""" Will attempt to access the ith optimization step of
-                    a gaussian output file to extract its geometry on all files 
-                    provided. 'initial geometry'='1'""")
+                    help="Will attempt to access the ith optimization step of "
+                    "a gaussian output file to extract its geometry on all files "
+                    "provided. 'initial geometry'='1'")
 
 def main(files:list[str|Path],
          outfile:Path=DEFAULT_OUTFILE,

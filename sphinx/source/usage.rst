@@ -1,6 +1,6 @@
-===========
+***********
 Basic Usage
-===========
+***********
 
 Since version 1.0.0 :code:`pyssianutils` is a command line application that 
 aggregates together multiple scripts for the manipulation of gaussian inputs and
@@ -33,7 +33,7 @@ line input:
     $ pyssianutils print potential myfile1.log myfile2.log --help
 
 Commonly used command inputs
-----------------------------
+============================
 
 Let us assume that in our current directory we have 6 files: 
 
@@ -80,7 +80,7 @@ behaviour
 
 Visualize the convergence criteria and energy of a single optimization:
 
-.. note:: 
+.. important:: 
 
    For any plotting related feature, the matplotlib and/or plotly libraries must
    be installed

@@ -116,12 +116,17 @@ Uninstalling pyssianutils
    $ pyssianutils clean
    $ python -m pip uninstall pyssianutils
 
+.. setupend
+
 Developed with
 ==============
+
+.. developed-start
 
 - python 3.12
 - Ubuntu 22.04 LTS
 
+.. developed-end
 
 Examples
 ========

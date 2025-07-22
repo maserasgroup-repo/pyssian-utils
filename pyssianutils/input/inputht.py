@@ -15,7 +15,7 @@ from ..initialize import load_app_defaults
 DEFAULTS = load_app_defaults()
 GAUSSIAN_INPUT_SUFFIX = DEFAULTS['common']['in_suffix']
 GAUSSIAN_OUTPUT_SUFFIX = DEFAULTS['common']['out_suffix']
-DEFAULT_SUFFIX = (GAUSSIAN_INPUT_SUFFIX,GAUSSIAN_OUTPUT_SUFFIX)
+DEFAULT_SUFFIX = GAUSSIAN_INPUT_SUFFIX
 DEFAULT_MARKER = DEFAULTS['common']['default_marker']
 GAUSSIAN_IN_SUFFIXES = DEFAULTS['common']['gaussian_in_suffixes'][1:-1].split(',')
 GAUSSIAN_OUT_SUFFIXES = DEFAULTS['common']['gaussian_out_suffixes'][1:-1].split(',')
@@ -173,8 +173,6 @@ def main(files:list[str|Path],
 
     if no_marker:
         marker = ''
-    else:
-        marker = f'_{marker}'
 
     outdir = Path(outdir)
     header = prepare_header(header)
@@ -193,7 +191,7 @@ def main(files:list[str|Path],
                                                         spin=spin,
                                                         step=step)
         with open(ofile,'w') as F:
-            txt = template.format(title=f'{stem}{marker}',
+            txt = template.format(title=f'{stem}_{marker}',
                                   charge=charge,
                                   spin=spin,
                                   coords=str(geom))

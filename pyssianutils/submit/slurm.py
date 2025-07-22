@@ -613,44 +613,44 @@ def add_template_common_options(parser:argparse.ArgumentParser,
                                 has_memory:bool=False): 
     parser.add_argument('inputfiles',
                         nargs='*',
-                        help=f"""Gaussian input files. If none is provided, it 
-                        will create a "{jobname_default}{SLURM_SUFFIX}" to use as 
-                        template.""")
+                        help=f"Gaussian input files. If none is provided, it "
+                        f"will create a '{jobname_default}{SLURM_SUFFIX}' to use as "
+                        "template.")
     group_input = parser.add_mutually_exclusive_group()
     group_input.add_argument('-l','--listfile',
                             dest='is_listfile',
                             action='store_true',default=False,
-                            help="""When enabled instead of considering the 
-                            files provided as the gaussian output files 
-                            considers the file provided as a list of gaussian
-                            output files""")
+                            help="When enabled instead of considering the "
+                            "files provided as the gaussian output files "
+                            "considers the file provided as a list of gaussian "
+                            "output files")
     group_input.add_argument('-r','--folder',
                             dest='is_folder',
                             action='store_true',default=False,
-                            help=f"""Takes the folder and its subfolder 
-                            hierarchy and creates a new folder with the same 
-                            subfolder structure. Finds all the 
-                            {GAUSSIAN_OUT_SUFFIX}, attempts to find their 
-                            companion {GAUSSIAN_IN_SUFFIX} files and creates the 
-                            new inputs in their equivalent locations in the new
-                            folder tree structure.""")
+                            help="Takes the folder and its subfolder "
+                            "hierarchy and creates a new folder with the same "
+                            "subfolder structure. Finds all the "
+                            f"{GAUSSIAN_OUT_SUFFIX}, attempts to find their "
+                            f"companion {GAUSSIAN_IN_SUFFIX} files and creates the "
+                            "new inputs in their equivalent locations in the new "
+                            "folder tree structure.")
     if DEFAULT_INPLACE: 
         parser.add_argument('-o','--outdir',
                             default=None,type=Path,
-                            help="""Where to create the new files, defaults 
-                            to the current directory""")
+                            help="Where to create the new files, defaults "
+                            "to the current directory")
         parser.set_defaults(is_inplace=True)
     else:
         group_output = parser.add_mutually_exclusive_group()
         group_output.add_argument('-o','--outdir',
                                 default=None,type=Path,
-                                help="""Where to create the new files, defaults 
-                                to the current directory""")
+                                help="Where to create the new files, defaults "
+                                "to the current directory")
         group_output.add_argument('--inplace',
                                 dest='is_inplace',
                                 action='store_true',default=False,
-                                help="""Creates the new files in the same 
-                                locations as the files provided by the user""")
+                                help="Creates the new files in the same "
+                                "locations as the files provided by the user")
     parser.add_argument('--suffix',
                         default=SLURM_SUFFIX,
                         help="suffix of the generated files")
@@ -658,21 +658,21 @@ def add_template_common_options(parser:argparse.ArgumentParser,
     overwriting.add_argument('-ow','--overwrite',
                              dest='do_overwrite',
                              action='store_true',default=False,
-                             help="""When creating the new files if a file with the 
-                             same name exists overwrites its contents. (The default 
-                             behaviour is to raise an error to notify the user before
-                             overwriting).""")
+                             help="When creating the new files if a file with the "
+                             "same name exists overwrites its contents. (The default "
+                             "behaviour is to raise an error to notify the user before "
+                             "overwriting).")
     overwriting.add_argument('--skip',
                              dest='skip',
                              action='store_true',default=False,
-                             help="""Skip the creation of slurm templates that 
-                             already exist""")
+                             help="Skip the creation of slurm templates that "
+                             "already exist")
     
     memory = parser.add_mutually_exclusive_group()
     memory.add_argument('--memory',
                         default=defaul_memory,
-                        help="""Memory requested for the calculation. If None is
-                        provided it will attempt to guess it from the gaussian input file.""") 
+                        help="Memory requested for the calculation. If None is "
+                        "provided it will attempt to guess it from the gaussian input file.") 
     memory.add_argument('--memory-per-cpu',
                         dest='memory_per_cpu',
                         default=False,action='store_true',
@@ -680,40 +680,41 @@ def add_template_common_options(parser:argparse.ArgumentParser,
 
     walltime = parser.add_mutually_exclusive_group()
     walltime.add_argument('--walltime',
-                          help=f"""Fixed value of walltime in DD-HH:MM:SS format.
-                          If none is provided it will use the default value of 
-                          '{walltime_default}'""",
-                          default=walltime_default)
-    walltime.add_argument('--use-max-walltime',help="""If enabled, use the 
-                            selected partition's max walltime""", 
-                            dest='use_max_walltime', default=False, 
-                            action='store_true')
+                          default=walltime_default,
+                          help="Fixed value of walltime in DD-HH:MM:SS format. "
+                          "If none is provided it will use the default value of "
+                          f"'{walltime_default}'",)
+    walltime.add_argument('--use-max-walltime',
+                          dest='use_max_walltime', 
+                          default=False, action='store_true',
+                          help="If enabled, use the selected partition's max walltime")
     if has_cores and DEFAULT_GUESS:
         parser.add_argument('--fix-cores',
                             dest='guess_cores',
                             action='store_false',default=True,
-                            help="""Do not attempt to guess the number of cores 
-                            from the gaussian input file""")
+                            help="Do not attempt to guess the number of cores "
+                            "from the gaussian input file")
     elif has_cores: 
         parser.add_argument('--guess-cores',
                             dest='guess_cores',
                             action='store_true',default=False,
-                            help="""attempt to guess the number of cores from 
-                            the gaussian input file""")
+                            help="attempt to guess the number of cores from "
+                            "the gaussian input file")
     if has_memory and DEFAULT_GUESS:
         parser.add_argument('--fix-mem',
                             dest='guess_memory',
                             action='store_false',default=True,
-                            help="""Do not attempt to guess the memory 
-                            from the gaussian input file""")
+                            help="Do not attempt to guess the memory "
+                            "from the gaussian input file")
     elif has_memory:
         parser.add_argument('--guess-mem',
                             dest='guess_memory',
                             action='store_true',default=False,
-                            help="""attempt to guess the memory from 
-                            the gaussian input file""")
-    inplace = parser.add_argument_group(description="""Arguments to modify 
-                                        in-place the provided gaussian input files""")
+                            help="attempt to guess the memory from "
+                            "the gaussian input file")
+    inplace = parser.add_argument_group(title='inplace modifications',
+                                        description="Arguments to modify "
+                                        "in-place the provided gaussian input files")
 
     memory = inplace.add_mutually_exclusive_group()
     memory.add_argument('--add-memory',
@@ -830,12 +831,12 @@ check.add_argument('filepath',
 check.add_argument('--json',
                    dest='jsonfile',
                    type=Path,default=None,
-                   help="""If provided and it is an existing file, it will check
-                   the agreement between the template and the json. If it is a 
-                   non-existing file it will create a basic json file containing
-                   the minimal information to be filled by the user with the 
-                   specifics of the template that was inspected. If not provided
-                   it will only check the template.""")
+                   help="If provided and it is an existing file, it will check "
+                   "the agreement between the template and the json. If it is a "
+                   "non-existing file it will create a basic json file containing "
+                   "the minimal information to be filled by the user with the "
+                   "specifics of the template that was inspected. If not provided "
+                   "it will only check the template.")
 def _main_check_template(filepath:Path,
                          jsonfile:Path|None):
     # Create a "TextTemplate" instance from filepath
@@ -863,22 +864,22 @@ def _main_check_template(filepath:Path,
         json_t.write(jsonfile)
 
 addtemplate = subparsers.add_parser('add-template',
-                                    help="""Adds a template to the user templates""")
+                                    help="Adds a template to the user templates")
 addtemplate.add_argument('filepath',
                          type=Path,
                          help='path to the template that will be added')
 addtemplate.add_argument('name',
                          nargs='?',default=None,
-                         help="""Name under which the template will be stored. 
-                         If none is provided it will be based on the stem of the
-                         file, e.g. myfile.txt would be saved as 'myfile' """)
+                         help="Name under which the template will be stored. "
+                         "If none is provided it will be based on the stem of the "
+                         "file, e.g. myfile.txt would be saved as 'myfile' ")
 addtemplate.add_argument('--json',
                          dest='jsonfile',
                          default=None,type=Path,
-                         help="""If provided instead of adding a basic json file
-                         that needs to be modified it will assume that the 
-                         provided json is correct and will store it with the 
-                         template.""")
+                         help="If provided instead of adding a basic json file "
+                         "that needs to be modified it will assume that the "
+                         "provided json is correct and will store it with the "
+                         "template.")
 def _main_add_template(filepath:Path,
                        name:str|None,
                        jsonfile:Path|None):
@@ -888,7 +889,7 @@ def _main_add_template(filepath:Path,
         template.check_minimal_keys(raise_error=True) 
     except KeyError as e: 
         raise KeyError(str(e) + 
-                       ' Consider running pyssianutils submit slurm check-template first')
+                       ' Consider running "pyssianutils submit slurm check-template" first')
 
     if jsonfile is not None: 
         check_templates_agreement(filepath,TemplateJson(jsonfile),raise_errors=True)
@@ -909,9 +910,9 @@ def _main_add_template(filepath:Path,
         print(f"Please update its contents before attempting to use the template")
 
 rmtemplate = subparsers.add_parser('rm-template',
-                                   help="""removes a template from the user templates""")
+                                   help="removes a template from the user templates")
 rmtemplate.add_argument('name',
-                        help="""Name under which the template is stored.""")
+                        help="Name under which the template is stored.")
 def _main_rm_template(name:str|None):
     if name is None: 
         _display_template_names()

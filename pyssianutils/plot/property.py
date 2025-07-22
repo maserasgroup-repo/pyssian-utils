@@ -82,27 +82,14 @@ def add_common_arguments(parser:argparse.ArgumentParser):
         parser.add_argument('--static',
                             dest='is_interactive',
                             action='store_false', default=True,
-                            help="""Write to a file instead of showing the figure
-                            in a new window""")
+                            help="Write to a file instead of showing the figure "
+                            "in a new window")
     else:
         parser.add_argument('--interactive',
                             dest='is_interactive',
                             action='store_true',default=False,
-                            help="""Instead of writing to a file open a window showing 
-                            the figure""")
-    if DEFAULTS['plot.property'].getboolean('default_browser'):
-        parser.add_argument('--no-browser',
-                            dest='in_browser',
-                            action='store_false',default=True,
-                            help="""if --interactive is enabled, it disables 
-                            displaing the image in the browser and it will 
-                            be displayed in a window instead.""")
-    else:
-        parser.add_argument('--browser',
-                            dest='in_browser',
-                            action='store_true',default=False,
-                            help="""Only if --interactive is enabled, it will display
-                            the image in the browser. To exit remember to Ctrl+C""")
+                            help="Instead of writing to a file open a window "
+                            "showing the figure")
 
 # Parser and main definition
 parser = argparse.ArgumentParser(description=__doc__)
@@ -116,29 +103,28 @@ energy.add_argument('--include-scf',
 energy.add_argument('--method',
                     default='default',type=lambda x: x.lower(),
                     choices=ALLOWEDMETHODS,
-                    help=""" When not provided it will 
-                    attempt (and may fail) to guess the method used 
-                    for the calculation to correctly read the potential
-                    energy of each step. If it fails it defaults to the 
-                    Energy of the 'SCF Done:' """)
+                    help="When not provided it will attempt (and may fail) to "
+                    "guess the method used for the calculation to correctly "
+                    "read the potential energy of each step. If it fails it "
+                    "defaults to the Energy of the 'SCF Done:' ")
 
-parameter = subparsers.add_parser('parameter',help='Draw the a named geometrical parameter')
+parameter = subparsers.add_parser('parameter',help='Draw a named geometrical parameter')
 add_common_arguments(parameter)
 parameter.add_argument('name',
-                       help="""Name of the parameter. For the available options 
-                       please look at the definitions on your file using 
-                       pyssianutils others track""")
+                       help="Name of the parameter. For the available options "
+                       "please look at the definitions on your file using "
+                       "'pyssianutils others track'")
 
 geometry = subparsers.add_parser('geometry',
-                                 help="""Draw a geometric parameter taht may 
-                                 not be a internal parameter. If 2 atom
-                                 ids are provided it will assume that it is a 
-                                 distance, 3 for an angle and 4 for a dihedral""")
+                                 help="Draw a geometric parameter that may "
+                                 "not be a internal parameter. If 2 atom "
+                                 "ids are provided it will assume that it is a "
+                                 "distance, 3 for an angle and 4 for a dihedral")
 add_common_arguments(geometry)
 geometry.add_argument('atoms',
                       nargs='+',type=int,
-                      help="""Atom numerical ids following the convention:
-                      first atom = 1""")
+                      help="Atom numerical ids following the convention: "
+                      "first atom = 1")
 
 def main(
          ifile:str|Path,
@@ -148,7 +134,6 @@ def main(
          scatter:bool=False,
          color:str=DEFAULT_COLOR,
          is_interactive:bool=False,
-         in_browser:bool=False,
          **kwargs):  
     
     assert DEFAULT_PLOT in ['line','scatter','both']
@@ -159,9 +144,6 @@ def main(
     
     if Path(outfile).suffix == '.svg':
         matplotlib.rcParams['svg.fonttype'] = 'none'
-
-    if is_interactive and in_browser: 
-        matplotlib.use('WebAgg')
         
     with GaussianOutFile(ifile) as GOF: 
         GOF.read()
@@ -265,8 +247,8 @@ def _main_geometry(GOF:GaussianOutFile,
             getter = lambda xyz: np.rad2deg(get_dihedral(xyz[i-1],xyz[j-1],xyz[k-1],xyz[l-1]))
             ylabel = f'Dihedral({i},{j},{k},{l}) Degrees'
         case _: 
-            raise argparse.ArgumentError(f"""the number of atom ids provided 
-                                should be 2, 3 or 4. The input was: {atoms}""")
+            raise argparse.ArgumentError("the number of atom ids provided "
+                                f"should be 2, 3 or 4. The input was: {atoms}")
     
     y = []
     for l202 in GOF.get_links(202):

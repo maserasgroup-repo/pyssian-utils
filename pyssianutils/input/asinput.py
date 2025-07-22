@@ -1,11 +1,9 @@
 __doc__ = """
 Takes a gaussian output file and constructs a gaussian input file with its last
-geometry either using a provided input file as template or using a {in_suffix} 
+geometry using its input file as template which is guessed as the {in_suffix} 
 file with the same name as the provided output file.
 """
 import argparse
-from collections import namedtuple
-from itertools import groupby,starmap
 from pathlib import Path
 
 from pyssian import GaussianOutFile, GaussianInFile
@@ -196,27 +194,27 @@ group_input = parser.add_mutually_exclusive_group()
 group_input.add_argument('-l','--listfile',
                          dest='is_listfile',
                          action='store_true',default=False,
-                         help="""When enabled instead of considering the 
-                         files provided as the gaussian output files 
-                         considers the file provided as a list of gaussian
-                         output files""")
+                         help="When enabled instead of considering the "
+                         "files provided as the gaussian output files "
+                         "considers the file provided as a list of gaussian "
+                         "output files")
 group_input.add_argument('-r','--folder',
                          dest='is_folder',
                          action='store_true',default=False,
-                         help=f"""Takes the folder and its subfolder 
-                         hierarchy and creates a new folder with the same 
-                         subfolder structure. Finds all the 
-                         {GAUSSIAN_OUTPUT_SUFFIX}, attempts to find their 
-                         companion {GAUSSIAN_INPUT_SUFFIX} files and creates the 
-                         new inputs in their equivalent locations in the new
-                         folder tree structure.""")
+                         help="Takes the folder and its subfolder "
+                         "hierarchy and creates a new folder with the same "
+                         "subfolder structure. Finds all the "
+                         f"{GAUSSIAN_OUTPUT_SUFFIX}, attempts to find their "
+                         f"companion {GAUSSIAN_INPUT_SUFFIX} files and creates the "
+                         "new inputs in their equivalent locations in the new"
+                         "folder tree structure.")
 group_marker = parser.add_mutually_exclusive_group()
 group_marker.add_argument('-m','--marker',
-                          default=DEFAULT_MARKER,
-                          help=f"""Text added to the filename to differentiate 
-                          the original file from the newly created one.
-                          For example, myfile{GAUSSIAN_INPUT_SUFFIX} may become 
-                          myfile_marker{GAUSSIAN_INPUT_SUFFIX}""")
+                          default=None,
+                          help="Text added to the filename to differentiate "
+                          "the original file from the newly created one. "
+                          f"For example, myfile{GAUSSIAN_INPUT_SUFFIX} may become "
+                          f"myfile_marker{GAUSSIAN_INPUT_SUFFIX}")
 group_marker.add_argument('--no-marker',
                           dest='no_marker',
                           action='store_true',default=False,
@@ -224,63 +222,69 @@ group_marker.add_argument('--no-marker',
 group_output = parser.add_mutually_exclusive_group()
 group_output.add_argument('-o','--outdir',
                           default=None,
-                          help="""Where to create the new files, defaults 
-                          to the current directory""")
+                          help="Where to create the new files, defaults "
+                          "to the current directory")
 group_output.add_argument('--inplace',
                           dest='is_inplace',
                           action='store_true',default=False,
-                          help="""Creates the new files in the same 
-                          locations as the files provided by the user""")
+                          help="Creates the new files in the same "
+                          "locations as the files provided by the user")
 parser.add_argument('-ow','--overwrite',
                     dest='do_overwrite',
                     action='store_true',default=False,
-                    help="""When creating the new files if a file with the 
-                    same name exists overwrites its contents. (The default 
-                    behaviour is to raise an error to notify the user before
-                    overwriting).""")
+                    help="When creating the new files if a file with the "
+                    "same name exists overwrites its contents. (The default "
+                    "behaviour is to raise an error to notify the user before"
+                    "overwriting).")
 parser.add_argument('-t','--tail',
                     default=None,
-                    help="""Tail File that contains the extra options, such
-                    as pseudopotentials, basis sets""")
+                    help="Tail File that contains the extra options, such "
+                    "as pseudopotentials, basis sets")
 parser.add_argument('--as-SP',
                     dest='as_SP',
                     action='store_true', default=False,
-                    help=f"""Removes the freq, opt and scan keyword if
-                    those existed in the previously existing inputs and 
-                    changes the default marker to {DEFAULT_SP_MARKER} """)
+                    help=f"Removes the freq, opt and scan keyword if "
+                    "those existed in the previously existing inputs and "
+                    f"changes the default marker to {DEFAULT_SP_MARKER} ")
 parser.add_argument('--method',
                     default=None,
-                    help="""New method/functional to use. Originally
-                    this option is thought to run DFT benchmarks it is not
-                    guaranteed a working input for CCSDT or ONIOM.""")
+                    help="New method/functional to use. Originally "
+                    "this option is thought to run DFT benchmarks it is not "
+                    "guaranteed a working input for CCSDT or ONIOM.")
+parser.add_argument('--basis',
+                    default=None,
+                    help="New basis to use if it was specified in the command "
+                    "line. For these purposes 'gen' and 'genecp' also count "
+                    "as 'basis' ")
 parser.add_argument('--solvent',
                     default=None,
-                    help="""New solvent to use in the calculation written as
-                    it would be written in Gaussian. ('vacuum'/'gas' will
-                    remove the scrf keywords if they were in the previous
-                    input files)""")
+                    help="New solvent to use in the calculation written as "
+                    "it would be written in Gaussian. ('vacuum'/'gas' will "
+                    "remove the scrf keywords if they were in the previous "
+                    "input files)")
 parser.add_argument('--smodel',
                     dest='solvation_model',
-                    default=None,choices=['smd','pcm',None], 
-                    help="""Solvent model. The scrf keyword will only be 
-                    included if the --solvent flag is enabled. 
-                    (Defaults to None which implies that no change to the 
-                    original inputs smodel will be done) """)
+                    default=None, choices=['smd','pcm',None], 
+                    help="Solvent model. The scrf keyword will only be "
+                    "included if the --solvent flag is enabled. "
+                    "(Defaults to None which implies that no change to the "
+                    "original inputs smodel will be done) ")
 parser.add_argument('--add-text',
                     dest='add_text',
                     default=None, 
-                    help="""Attempts to add literally the text provided to
-                    the command line. Recommended: 
-                    "keyword=(value1,keyword2=value2)" """)
-parser.add_argument('--suffix',
+                    help='Attempts to add literally the text provided to '
+                    'the command line. Recommended: '
+                    '"keyword=(value1,keyword2=value2)" ')
+parser.add_argument('--suffixes',
                     default=DEFAULT_SUFFIX,nargs=2,
-                    help="""Input and output suffix used for gaussian files""")
+                    help="Input and output suffix used for gaussian files")
 
 def main(
          files:list[str|Path],
          outdir:str|Path|None=None,
-         suffix:tuple[str]=DEFAULT_SUFFIX,
+         suffixes:tuple[str]=DEFAULT_SUFFIX,
          method:str|None=None,
+         basis:str|None=None,
          solvent:str|None=None,
          solvation_model:str|None=None,
          add_text:str|None=None,
@@ -298,7 +302,7 @@ def main(
     tail = prepare_tail(tail)
     
     # Ensure proper suffixes
-    in_suffix,out_suffix = starmap(prepare_suffix,suffix)
+    in_suffix,out_suffix = map(prepare_suffix,suffixes)
 
     templates,geometries,newfiles = prepare_filepaths(files,
                                                       outdir,
@@ -357,6 +361,10 @@ def main(
         # Overwrite the method if the user specified so
         if method is not None:
             gif.method = method
+        
+        # Overwrite the basis if the user specified so
+        if basis is not None:
+            gif.basis = basis
 
         # Handle solvation substitutions
         if solvent is not None:

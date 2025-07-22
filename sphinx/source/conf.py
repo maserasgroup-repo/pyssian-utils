@@ -65,7 +65,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'source/modules.rst']
 html_theme = 'sphinx_rtd_theme' #'nature'
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'OneDarkPro.OneDarkPro' # 'paraiso-dark' #'default', 'emacs', 'friendly', 'colorful', 'autumn', 'murphy', 'manni', 'material', 'monokai', 'perldoc', 'pastie', 'borland', 'trac', 'native', 'fruity', 'bw', 'vim', 'vs', 'tango', 'rrt', 'xcode', 'igor', 'paraiso-light', 'paraiso-dark', 'lovelace', 'algol', 'algol_nu', 'arduino', 'rainbow_dash', 'abap', 'solarized-dark', 'solarized-light', 'sas', 'stata', 'stata-light', 'stata-dark', 'inkpot', 'zenburn', 'gruvbox-dark', 'gruvbox-light'
+pygments_style = 'one-dark'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

@@ -187,32 +187,33 @@ parser.add_argument('chk',help='Gaussian Checkpoint File')
 parser.add_argument('-es','--excited-states',
                     dest='excited_states',
                     nargs='+',required=True,type=int,
-                    help=""" list of numbers that correspond to the excited
-                    states whose output is desired""")
+                    help="list of numbers that correspond to the excited "
+                    "states whose output is desired")
 group_calc = parser.add_mutually_exclusive_group(required=True)
 group_calc.add_argument('-sq','--squarefirst',
                         dest='do_squares_first', action='store_true',
-                        help="""Calculates the cubes squaring the cubes after 
-                        the scaling and before summing the donors and/or 
-                        acceptors""")
+                        help="Calculates the cubes squaring the cubes after "
+                        "the scaling and before summing the donors and/or "
+                        "acceptors")
 group_calc.add_argument('-sum','--sumfirst',
                         dest='DoSquaresFirst', action='store_false',
-                        help="""Calculates the cubes squaring the cubes after 
-                        summing the donors, acceptors""")
+                        help="Calculates the cubes squaring the cubes after "
+                        "summing the donors, acceptors")
 parser.add_argument('-m','--multiple',
                     dest='do_multiple',
                     default=False,action='store_true',
-                    help="""Generate one .py per each Electronic State selected,
-                    otherwise a single .py with all the Electronic states is 
-                    generated""")
-parser.add_argument('-n','--name', help="""name of the job for the
-                    queue system""",default='CubeGenerator')
+                    help="Generate one .py per each Electronic State selected, "
+                    "otherwise a single .py with all the Electronic states is "
+                    "generated")
+parser.add_argument('-n','--name',
+                    default='CubeGenerator',
+                    help="name of the job for the queue system")
 parser.add_argument('-q','--queue', 
                     choices=list(ALLOWEDQUEUES.keys()),
-                    help=""" name of the queue that will be used 
-                    which may be identified by the number of processors. 
-                    This is HPC specific""",
-                    default='unknown')
+                    default='unknown',
+                    help="name of the queue that will be used "
+                    "which may be identified by the number of processors. "
+                    "This is HPC specific")
 
 def main(ifile:str|Path,
          chk:str,

@@ -201,11 +201,14 @@ pack_parser.add_argument('name',nargs='?',
                          default=PKGDEFAULTNAME,
                          help="name of the file that will contain the user's configuration")
 pack_parser.add_argument('--outputdir','-O',
-                         default=Path.cwd(),
+                         default=None,
                          help="Directory where the file will be created. "
                          "Defaults to the CWD")
 def pack_main(name:str,
-              outputdir:Path):
+              outputdir:Path|None):
+
+    if outputdir is None: 
+        outputdir = Path.cwd()
 
     appdir = get_appdir()
     pack_appdir(appdir,target=outputdir/f'{name}.tar')
