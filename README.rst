@@ -104,7 +104,7 @@ Finally we ensure that pyssianutils is initialized:
 Uninstalling pyssianutils
 -------------------------
 
-.. note:: 
+.. important:: 
 
    Since pyssianutils>=1.0.0, to ensure a complete removal of all pyssianutils 
    files we need to run the 'clean' command before using pip to uninstall it. 
