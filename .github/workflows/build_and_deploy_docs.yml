@@ -38,14 +38,20 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install ./
+          pyssianutils init
           cd sphinx
           python -m pip install -r requirements.txt
+      - name: Build Documentation
+        run: |
           git fetch --tags
+          cd sphinx
           python3 build_docs.py
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/
+          path: pages/
+      - name: Cleanup pyssianutils
+        run: pyssianutils clean
   deploy:
     if: github.repository == 'maserasgroup-repo/pyssian-utils'
     environment:
@@ -59,17 +65,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v3
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          # Upload entire repository
-          path: './pages'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
