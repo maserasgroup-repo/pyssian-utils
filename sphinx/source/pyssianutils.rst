@@ -1,35 +1,21 @@
-pyssianutils.functions
-======================
+pyssianutils API
+================
 
-.. automodule:: pyssianutils.functions
+initialize
+----------
 
-General
--------
+.. automodule:: pyssianutils.initialize
 
-.. autofunction:: pyssianutils.functions.write_2_file
+.. autofunction:: pyssianutils.initialize.get_appdir()
 
-Script
-------
+.. autofunction:: pyssianutils.initialize.get_resourcesdir()
 
-.. autofunction:: pyssianutils.functions.potential_energy
+.. autofunction:: pyssianutils.initialize.check_initialization()
 
-.. autofunction:: pyssianutils.functions.thermochemistry
+.. autofunction:: pyssianutils.initialize.load_app_defaults()
 
+utils
+-----
 
-Console
--------
-
-.. autofunction:: pyssianutils.functions.print_thermo
-
-.. autofunction:: pyssianutils.functions.print_convergence
-
-
-Plot
-----
-
-.. autofunction:: pyssianutils.functions.PlotConvergence
-
-.. autofunction:: pyssianutils.functions.PlotInternalEnergy
-
-.. autofunction:: pyssianutils.functions.PlotThresholds
-
+.. automodule:: pyssianutils.utils
+    :members:

@@ -2,3 +2,5 @@ Sphinx
 sphinx-rtd-theme
 sphinxcontrib-napoleon
 pygments
+sphinx-argparse
+sphinx-copybutton

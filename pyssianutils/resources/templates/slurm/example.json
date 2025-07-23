@@ -1,0 +1,32 @@
+{
+    "partition": {
+        "example": {
+            "name": "example",
+            "max_walltime": "13-00:00:00",
+            "mem_per_cpu": 1024
+        }
+    },
+    "module": {
+        "g16": {
+            "exe": "g16",
+            "load": "gaussian/16"
+        }
+    },
+    "defaults": {
+        "cores": 8,
+        "memory": "16GB",
+        "partition": "example",
+        "module": "g16",
+        "walltime": "24:00:00",
+        "jobname": "test_job"
+    },
+    "descriptions": {
+        "cores": "Number of cores for the calculation",
+        "partition": "Partition name / Queue that will be used for the calculation",
+        "module": "alias of the gaussian version and how to load it",
+        "walltime": "Time requested for the calculation",
+        "jobname": "default name for the job"
+    },
+    "cores": [2,4,8,16,24,32],
+    "memory": ["2GB","4GB","8GB","16GB","24GB","32GB","64GB"]
+}

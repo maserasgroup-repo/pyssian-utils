@@ -1,0 +1,21 @@
+#!/bin/bash
+#SBATCH -c {cores}
+#SBATCH --mem {memory}
+#SBATCH -t {walltime}
+#SBATCH --partition {partition}
+#SBATCH --job-name {jobname}
+#SBATCH -o %x.slurm.o%j
+#SBATCH -e %x.slurm.e%j
+
+#Set up gaussian environment
+module load {moduleload}
+export GAUSS_SCRDIR=${{SCRATCHGLOBAL}}/job_${{SLURM_JOBID}}
+
+mkdir -p ${{GAUSS_SCRDIR}}; 
+
+job_name={jobname};
+
+{gauexe} < ${{job_name}}{in_suffix} > ${{job_name}}{out_suffix}
+
+rm -r ${{GAUSS_SCRDIR}};
+

@@ -1,6 +1,8 @@
 import setuptools
+import re
 
-__version__ = '0.0.1'
+with open('pyssianutils/_version.py','r') as F: 
+    __version__ = re.findall(r'[0-9]*\.[0-9]*\.[0-9]',F.read())[0]
 
 with open("README.rst", "r") as fh:
     long_description = fh.read()
@@ -8,33 +10,32 @@ with open("README.rst", "r") as fh:
 setuptools.setup(
   name = 'pyssianutils',
   version = __version__,
-  packages = ['pyssianutils',],
-  description = """ Command line utils developed with pyssian for everyday tasks
-                    in computational chemistry """,
+  packages = setuptools.find_packages(),
+  description = "A CLI with utils for everyday tasks in CompChem developed with pyssian",
   author = 'Raúl Pérez-Soto',
   author_email = 'rperezsoto.research@gmail.com',
   long_description=long_description,
   long_description_content_type="text/x-rst",
-  url = 'https://github.com/fmaserasgroup-repo/pyssian-utils',
+  url = 'https://github.com/maserasgroup-repo/pyssian-utils',
   keywords = ['compchem', 'gaussian','parser'],
-  classifiers = ['License :: OSI Approved :: MIT License',
-                 'Programming Language :: Python :: 3',
+  classifiers = ['Programming Language :: Python :: 3',
                  'Programming Language :: Python :: 3.6',
                  'Programming Language :: Python :: 3.7',
                  'Programming Language :: Python :: 3.8',
                  'Programming Language :: Python :: 3.9',
                  ],
-  install_requires=['setuptools','pathlib','numpy', 'pyssian'],
-  extras_require={'plotting functions':'matplotlib'},
+  install_requires=['setuptools',
+                    'pathlib',
+                    'numpy',
+                    'pyssian>=1.1',
+                    'platformdirs'],
+  extras_require={'plotting':['matplotlib','plotly']},
   python_requires='>=3.6',
+  package_data = {'resources': ['pyssianutils/resources/defaults.ini',
+                                'pyssianutils/resources/templates/slurm/example.txt',
+                                'pyssianutils/resources/templates/slurm/example.json']},
   include_package_data=True,
-  scripts = ['pyssianutils/pyssian-thermo.py',
-             'pyssianutils/pyssian-potential.py',
-             'pyssianutils/pyssian-submit.py',
-             'pyssianutils/pyssian-inputHT.py',
-             'pyssianutils/pyssian-asinput.py',
-             'pyssianutils/pyssian-tddft-cubes.py',
-             'pyssianutils/pyssian-track.py'],
+  scripts = ['pyssianutils/pyssianutils'],
   project_urls={'Bug Reports': 'https://github.com/maserasgroup-repo/pyssian-utils/issues',
                 'Source': 'https://github.com/maserasgroup-repo/pyssian-utils',
                 'Docs' : 'https://maserasgroup-repo.github.io/pyssian-utils/'

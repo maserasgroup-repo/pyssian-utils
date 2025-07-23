@@ -1,0 +1,70 @@
+#!/bin/usr/env python3
+import sys
+
+from pyssianutils.utils import  (MAINS, create_parser, 
+                                 add_parser_as_subparser, register_main)
+import pyssianutils.initialize
+import pyssianutils.input
+import pyssianutils.print
+import pyssianutils.plot
+import pyssianutils.toxyz
+import pyssianutils.submit
+import pyssianutils.others
+
+if __name__ == '__main__': 
+    parser, subparsers = create_parser()
+    
+    # First we add the initialize and clean subparsers
+    add_parser_as_subparser(subparsers,
+                            pyssianutils.initialize.init_parser, 'init',
+                            help=pyssianutils.initialize.init_description)
+    register_main(pyssianutils.initialize.init_main,'init')
+
+    add_parser_as_subparser(subparsers,
+                            pyssianutils.initialize.clean_parser, 'clean',
+                            help=pyssianutils.initialize.clean_description)
+    register_main(pyssianutils.initialize.clean_main,'clean')
+
+    add_parser_as_subparser(subparsers,
+                            pyssianutils.initialize.pack_parser, 'pack',
+                            help=pyssianutils.initialize.pack_description)
+    register_main(pyssianutils.initialize.pack_main,'pack')
+
+    add_parser_as_subparser(subparsers,
+                            pyssianutils.initialize.defaults_parser, 'defaults',
+                            help=pyssianutils.initialize.defaults_description)
+    register_main(pyssianutils.initialize.defaults_main,'defaults')
+
+    # Now we add the remaining parsers
+    modules = [
+        (pyssianutils.input.inputht, 'inputht'),
+        (pyssianutils.input.asinput, 'asinput'),
+        (pyssianutils.input.distortts, 'distort-ts'),
+        (pyssianutils.print, 'print'),
+        (pyssianutils.plot, 'plot'),
+        (pyssianutils.toxyz, 'toxyz'),
+        (pyssianutils.others, 'others'),
+        (pyssianutils.submit, 'submit'),
+        (pyssianutils.submit.slurm, 'slurm'),
+    ]
+    for module,modulename in modules: 
+        add_parser_as_subparser(subparsers,
+                                module.parser,modulename,
+                                help=module.__doc__)
+        register_main(module.main,modulename)
+    
+    args = parser.parse_args()
+
+    if args.command is None: 
+        parser.print_help(sys.stderr)
+    else:
+        kwargs = dict(args._get_kwargs())
+        command = kwargs.pop('command')
+        
+        if command not in ['init','clean']: 
+            pyssianutils.initialize.check_initialization()
+        
+        if kwargs:
+            MAINS[command](**kwargs)
+        else:
+            MAINS[command]()
