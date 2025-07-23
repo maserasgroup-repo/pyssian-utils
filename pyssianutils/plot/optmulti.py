@@ -102,14 +102,14 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('files',help='Gaussian Output Files',nargs='+')
 parser.add_argument('--outfile',nargs='?',
                     default=DEFAULTS['plot.optmulti']['outfile'],
-                    help="""Output html file where the interactive figure will 
-                    be written to""")
+                    help="Output html file where the interactive figure will "
+                    "be written to")
 parser.add_argument('--browser',
                     dest='in_browser',
                     action='store_true',default=False,
-                    help="""If enabled instead of saving to a file it will 
-                    open a browser window and show the figure. To exit the 
-                    process in the terminal remember to Ctrl+C""")
+                    help="If enabled instead of saving to a file it will "
+                    "open a browser window and show the figure. To exit the "
+                    "process in the terminal remember to Ctrl+C")
 
 def main(
          files:list[str|Path],

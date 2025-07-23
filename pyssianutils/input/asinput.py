@@ -1,11 +1,9 @@
 __doc__ = """
 Takes a gaussian output file and constructs a gaussian input file with its last
-geometry either using a provided input file as template or using a {in_suffix} 
+geometry using its input file as template which is guessed as the {in_suffix} 
 file with the same name as the provided output file.
 """
 import argparse
-from collections import namedtuple
-from itertools import groupby,starmap
 from pathlib import Path
 
 from pyssian import GaussianOutFile, GaussianInFile
@@ -24,60 +22,9 @@ DEFAULT_SP_MARKER = DEFAULTS['input.asinput']['sp_marker']
 DEFAULT_SOFTWARE = DEFAULTS['input.asinput']['software']
 DEFAULT_SCRIPTNAME = DEFAULTS['input.asinput']['script_name']
 
-Queue = namedtuple('Queue','nprocesors memory'.split())
-QUEUES = {4:Queue(4,8),8:Queue(8,24),
-          12:Queue(12,24),
-          16:Queue(16,32),
-          20:Queue(20,48),
-          24:Queue(24,128),28:Queue(28,128),
-          36:Queue(36,192),'q4':Queue('q4',4)}
-
 class NotFoundError(RuntimeError):
     pass
 
-# Utility Functions
-def submitline(filepath:Path,software:str) -> str:
-    """
-    Inspects the file, selects the queue and returns the string that corresponds
-    to the submission of the calculation to a queue system.
-
-    Parameters
-    ----------
-    File : Path
-        pathlib.Path pointing towards the input file to submit.
-    software : str
-        either 'g09' or 'g16'
-
-    Returns
-    -------
-    str
-
-    """
-    command = 'qs {0}.c{1.nprocesors}m{1.memory} {2};'
-    with open(filepath,'r') as F:
-        lines = [line.strip() for line in F]
-    # Find nproc
-    for line in lines:
-        if 'nproc' in line:
-            nprocs = int(line.strip().split("=")[-1])
-            break
-    else:
-        raise NotFoundError(f'nproc not found in {filepath}')
-    # Find Mem
-    for line in lines:
-        if '%mem' in line:
-            memory = int(line.strip().split("=")[-1][:-2])
-            if line.strip().lower().endswith('gb'):
-                memory *= 1024
-            break
-    if nprocs == 4 and software == 'g16':
-        queue = QUEUES['q4']
-    elif nprocs == 4 and memory < 4000:
-        queue = QUEUES['q4']
-    else:
-        queue = QUEUES[nprocs]
-    txt = command.format(software,queue,filepath.name)
-    return txt
 def prepare_filepaths(
                       filepaths:list[str|Path],
                       outdir:str|Path|None,
@@ -113,9 +60,9 @@ def prepare_filepaths(
 
     # Check the compatibility of the arguments, otherwise raise an error
     if is_inplace and no_marker and not do_overwrite:
-        raise ValueError("""Using the --inplace with --no-marker will replace
-                the previously existing input files. To continue please re-run
-                the command but add the flag '--overwrite' (or '-ow').""")
+        raise ValueError("Using the --inplace with --no-marker will replace "
+                "the previously existing input files. To continue please re-run "
+                "the command but add the flag '--overwrite' (or '-ow').")
 
     # Prepare folder structure
     if is_folder:
@@ -237,29 +184,6 @@ def prepare_tail(filepath:Path|None) -> str|None:
         _ = aux.pop(-1)
     
     return '\n'.join(aux)
-def create_hpc_submission_script(files:list[Path],
-                                 software:str|None='g16',
-                                 script:str|Path='submitscript.sh'): 
-    # Now create the submit script
-    lines = ['#!/bin/bash\n',
-             '# Automated Submit Script\n'
-             f'BASEDIR=$PWD;']
-    
-    files = [(f.parent,f) for f in files]
-    files.sort(key=lambda x: x[0])
-
-    for folder,group in groupby(files,key=lambda x: x[0]):
-        lines.append(f'echo "moving to {folder}";')
-        lines.append(f'cd {folder};')
-        items = list(group)
-        for item in items:
-            lines.append(submitline(item[1],software))
-        lines.append('cd ${BASEDIR};')
-    lines.append('echo "Finished submiting calculations";')
-
-    with open(script,'w') as F:
-        F.write('\n'.join(lines))
-
 
 # Parser and Main Definition
 __doc__ = __doc__.format(in_suffix=GAUSSIAN_INPUT_SUFFIX)
@@ -270,27 +194,27 @@ group_input = parser.add_mutually_exclusive_group()
 group_input.add_argument('-l','--listfile',
                          dest='is_listfile',
                          action='store_true',default=False,
-                         help="""When enabled instead of considering the 
-                         files provided as the gaussian output files 
-                         considers the file provided as a list of gaussian
-                         output files""")
+                         help="When enabled instead of considering the "
+                         "files provided as the gaussian output files "
+                         "considers the file provided as a list of gaussian "
+                         "output files")
 group_input.add_argument('-r','--folder',
                          dest='is_folder',
                          action='store_true',default=False,
-                         help=f"""Takes the folder and its subfolder 
-                         hierarchy and creates a new folder with the same 
-                         subfolder structure. Finds all the 
-                         {GAUSSIAN_OUTPUT_SUFFIX}, attempts to find their 
-                         companion {GAUSSIAN_INPUT_SUFFIX} files and creates the 
-                         new inputs in their equivalent locations in the new
-                         folder tree structure.""")
+                         help="Takes the folder and its subfolder "
+                         "hierarchy and creates a new folder with the same "
+                         "subfolder structure. Finds all the "
+                         f"{GAUSSIAN_OUTPUT_SUFFIX}, attempts to find their "
+                         f"companion {GAUSSIAN_INPUT_SUFFIX} files and creates the "
+                         "new inputs in their equivalent locations in the new"
+                         "folder tree structure.")
 group_marker = parser.add_mutually_exclusive_group()
 group_marker.add_argument('-m','--marker',
-                          default=DEFAULT_MARKER,
-                          help=f"""Text added to the filename to differentiate 
-                          the original file from the newly created one.
-                          For example, myfile{GAUSSIAN_INPUT_SUFFIX} may become 
-                          myfile_marker{GAUSSIAN_INPUT_SUFFIX}""")
+                          default=None,
+                          help="Text added to the filename to differentiate "
+                          "the original file from the newly created one. "
+                          f"For example, myfile{GAUSSIAN_INPUT_SUFFIX} may become "
+                          f"myfile_marker{GAUSSIAN_INPUT_SUFFIX}")
 group_marker.add_argument('--no-marker',
                           dest='no_marker',
                           action='store_true',default=False,
@@ -298,87 +222,69 @@ group_marker.add_argument('--no-marker',
 group_output = parser.add_mutually_exclusive_group()
 group_output.add_argument('-o','--outdir',
                           default=None,
-                          help="""Where to create the new files, defaults 
-                          to the current directory""")
+                          help="Where to create the new files, defaults "
+                          "to the current directory")
 group_output.add_argument('--inplace',
                           dest='is_inplace',
                           action='store_true',default=False,
-                          help="""Creates the new files in the same 
-                          locations as the files provided by the user""")
+                          help="Creates the new files in the same "
+                          "locations as the files provided by the user")
 parser.add_argument('-ow','--overwrite',
                     dest='do_overwrite',
                     action='store_true',default=False,
-                    help="""When creating the new files if a file with the 
-                    same name exists overwrites its contents. (The default 
-                    behaviour is to raise an error to notify the user before
-                    overwriting).""")
+                    help="When creating the new files if a file with the "
+                    "same name exists overwrites its contents. (The default "
+                    "behaviour is to raise an error to notify the user before"
+                    "overwriting).")
 parser.add_argument('-t','--tail',
                     default=None,
-                    help="""Tail File that contains the extra options, such
-                    as pseudopotentials, basis sets""")
+                    help="Tail File that contains the extra options, such "
+                    "as pseudopotentials, basis sets")
 parser.add_argument('--as-SP',
                     dest='as_SP',
                     action='store_true', default=False,
-                    help=f"""Removes the freq, opt and scan keyword if
-                    those existed in the previously existing inputs and 
-                    changes the default marker to {DEFAULT_SP_MARKER} """)
+                    help=f"Removes the freq, opt and scan keyword if "
+                    "those existed in the previously existing inputs and "
+                    f"changes the default marker to {DEFAULT_SP_MARKER} ")
 parser.add_argument('--method',
                     default=None,
-                    help="""New method/functional to use. Originally
-                    this option is thought to run DFT benchmarks it is not
-                    guaranteed a working input for CCSDT or ONIOM.""")
+                    help="New method/functional to use. Originally "
+                    "this option is thought to run DFT benchmarks it is not "
+                    "guaranteed a working input for CCSDT or ONIOM.")
+parser.add_argument('--basis',
+                    default=None,
+                    help="New basis to use if it was specified in the command "
+                    "line. For these purposes 'gen' and 'genecp' also count "
+                    "as 'basis' ")
 parser.add_argument('--solvent',
                     default=None,
-                    help="""New solvent to use in the calculation written as
-                    it would be written in Gaussian. ('vacuum'/'gas' will
-                    remove the scrf keywords if they were in the previous
-                    input files)""")
+                    help="New solvent to use in the calculation written as "
+                    "it would be written in Gaussian. ('vacuum'/'gas' will "
+                    "remove the scrf keywords if they were in the previous "
+                    "input files)")
 parser.add_argument('--smodel',
                     dest='solvation_model',
-                    default=None,choices=['smd','pcm',None], 
-                    help="""Solvent model. The scrf keyword will only be 
-                    included if the --solvent flag is enabled. 
-                    (Defaults to None which implies that no change to the 
-                    original inputs smodel will be done) """)
+                    default=None, choices=['smd','pcm',None], 
+                    help="Solvent model. The scrf keyword will only be "
+                    "included if the --solvent flag is enabled. "
+                    "(Defaults to None which implies that no change to the "
+                    "original inputs smodel will be done) ")
 parser.add_argument('--add-text',
                     dest='add_text',
                     default=None, 
-                    help="""Attempts to add literally the text provided to
-                    the command line. Recommended: 
-                    "keyword=(value1,keyword2=value2)" """)
-parser.add_argument('--suffix',
+                    help='Attempts to add literally the text provided to '
+                    'the command line. Recommended: '
+                    '"keyword=(value1,keyword2=value2)" ')
+parser.add_argument('--suffixes',
                     default=DEFAULT_SUFFIX,nargs=2,
-                    help="""Input and output suffix used for gaussian files""")
-script_group = parser.add_mutually_exclusive_group()
-if DEFAULTS['input.asinput'].getboolean('generate_script'): 
-    script_group.add_argument('--no-submit',
-                            dest='do_submit',
-                            default=True,action='store_false',
-                            help=f"""Do not create a {DEFAULT_SCRIPTNAME} file in the 
-                            current directory""")
-else:
-    script_group.add_argument('--submit',
-                            dest='do_submit',
-                            default=False,action='store_true',
-                            help=f"""Do not create a {DEFAULT_SCRIPTNAME} file in the 
-                            current directory""")
-script_group.add_argument('--scriptname',
-                        dest='script_name',
-                        default=DEFAULT_SCRIPTNAME,
-                        help=f"""Name of the script generated to submit the
-                        calculations""")
-parser.add_argument('--software',
-                    choices=['g09','g16'],default=DEFAULT_SOFTWARE,
-                    help=f"""Version of gaussian to which the calculations
-                    will be sent. Only affects the submission script if 
-                    generated. 
-                    'qs {DEFAULT_SOFTWARE}.queue.q file{GAUSSIAN_INPUT_SUFFIX}'""")
+                    help="Input and output suffix used for gaussian files")
 
 def main(
          files:list[str|Path],
          outdir:str|Path|None=None,
-         suffix:tuple[str]=DEFAULT_SUFFIX,
+         suffixes:tuple[str]=DEFAULT_SUFFIX,
          method:str|None=None,
+         basis:str|None=None,
          solvent:str|None=None,
          solvation_model:str|None=None,
          add_text:str|None=None,
@@ -390,16 +296,13 @@ def main(
          is_inplace:bool=False,
          do_overwrite:bool=False,
          tail:Path|str|None=None,
-         do_submit:bool=False,
-         software:str|None=DEFAULT_SOFTWARE,
-         script_name:str=DEFAULT_SCRIPTNAME,
          ):
 
     # Prepare Tail
     tail = prepare_tail(tail)
     
     # Ensure proper suffixes
-    in_suffix,out_suffix = starmap(prepare_suffix,suffix)
+    in_suffix,out_suffix = map(prepare_suffix,suffixes)
 
     templates,geometries,newfiles = prepare_filepaths(files,
                                                       outdir,
@@ -458,6 +361,10 @@ def main(
         # Overwrite the method if the user specified so
         if method is not None:
             gif.method = method
+        
+        # Overwrite the basis if the user specified so
+        if basis is not None:
+            gif.basis = basis
 
         # Handle solvation substitutions
         if solvent is not None:
@@ -479,8 +386,3 @@ def main(
 
         gif.write(ofile)
         final_files.append(ofile)
-
-    if do_submit:
-        create_hpc_submission_script(final_files,
-                                     software,
-                                     script_name)

@@ -39,35 +39,38 @@ def parse_gaussianfile(ifile:str|Path,
     
     method = guess_method(GOF)
 
-    U = potential_energy(GOF,method)
+    E = potential_energy(GOF,method)
     
-    if U is None and not verbose: 
+    if E is None and not verbose: 
         return ''
     elif verbose:
         raise RuntimeError(f'Potential Energy not found in file {ifile.name}')
 
-    return number_fmt.format(U)
+    return number_fmt.format(E)
 
 # Parser and Main Definition
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('files',help='Gaussian Output File(s)',nargs='+')
-parser.add_argument('-l','--listfile',help="""When enabled instead of
-                        considering the files provided as the gaussian output files
-                        considers the file provided as a list of gaussian output
-                        files""",action='store_true',dest='is_listfile')
-parser.add_argument('-o','--outfile',help="""File to write the Data. If it
-                        exists, the data will be appended. If none is provided 
-                        it will be printed to stdout""",default=None)
-parser.add_argument('--method',help=""" When not provided it will 
-                        attempt (and may fail) to guess the method used 
-                        for the calculation to correctly read the potential
-                        energy. Otherwise it defaults to the Energy of the
-                        'SCF Done:' """, 
-                        choices=ALLOWEDMETHODS,
-                        default='default',type=lambda x: x.lower())
-parser.add_argument('-v','--verbose',help="""if enabled it will raise an error
-                        anytime it is unable to find the energy of the provided file
-                        """, default=False,action='store_true')
+parser.add_argument('-l','--listfile',
+                    action='store_true',dest='is_listfile',
+                    help="When enabled instead of considering the files provided "
+                    "as the gaussian output files considers the file provided as "
+                    "a list of gaussian output files")
+parser.add_argument('-o','--outfile',
+                    default=None,
+                    help="File to write the Data. If it exists, the data will be "
+                    "appended. If none is provided it will be printed to stdout")
+parser.add_argument('--method',
+                    choices=ALLOWEDMETHODS,
+                    default='default',type=lambda x: x.lower(),
+                    help="When not provided it will attempt (and may fail) to "
+                    "guess the method used for the calculation to correctly read "
+                    "the potential energy. Otherwise it defaults to the Energy of "
+                    "the 'SCF Done:' ")
+parser.add_argument('-v','--verbose',
+                    default=False,action='store_true',
+                    help="if enabled it will raise an error anytime it is unable "
+                    "to find the energy of the provided file")
 
 def main(
          files:list[str|Path],
@@ -107,8 +110,8 @@ def main(
             write_output('')
             continue
         
-        U = parse_gaussianfile(ifile,
+        E = parse_gaussianfile(ifile,
                                number_fmt,
                                verbose)
         
-        write_output(line_fmt.format(str(ifile),U))
+        write_output(line_fmt.format(str(ifile),E))

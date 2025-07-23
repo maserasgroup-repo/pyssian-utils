@@ -166,9 +166,9 @@ __doc__ = __doc__.format(in_suffix=GAUSSIAN_INPUT_SUFFIX,
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('folder',
-                    nargs='?',default=Path.cwd(),
-                    help="""Folder where the files are located. If not provided
-                    it will use the current working directory.""")
+                    nargs='?',default=None,
+                    help="Folder where the files are located. If not provided "
+                    "it will use the current working directory.")
 parser.add_argument('--outfile','-o',
                     dest='scriptname',
                     default=DEFAULT_SCRIPT,
@@ -178,31 +178,34 @@ parser.add_argument('--software',
                     default=DEFAULT_SOFTWARE)
 parser.add_argument('--recursive','-r',
                     action='store_true', default=False,
-                    help="""If enabled it will recursively search in the 
-                    subdirectories of the current folder""")
+                    help="If enabled it will recursively search in the "
+                    "subdirectories of the current folder")
 parser.add_argument('--ascomments',
                     dest='as_comments',
                     action='store_true',default=False,
-                    help=f"""If enabled found {GAUSSIAN_INPUT_SUFFIX} files with
-                    a matching {GAUSSIAN_OUTPUT_SUFFIX} are included as comments""")
+                    help=f"If enabled found {GAUSSIAN_INPUT_SUFFIX} files with "
+                    f"a matching {GAUSSIAN_OUTPUT_SUFFIX} are included as comments")
 parser.add_argument('--suffix',
                     default=(None,None),nargs=2,
-                    help="""Input and output suffix used for gaussian files""") 
+                    help="Input and output suffix used for gaussian files") 
 parser.add_argument('--norun',
                     dest='no_run',
                     action='store_true',default=False,
-                    help=f"""If enabled the submit command will instead just 
-                    generate the {GAUSSIAN_INPUT_SUFFIX}.sub file""")
+                    help="If enabled the submit command will instead just "
+                    f"generate the {GAUSSIAN_INPUT_SUFFIX}.sub file")
 
 
 def main(
-         folder:Path,
+         folder:Path|None,
          software:str=DEFAULT_SOFTWARE,
          suffix:tuple[str|None]=(None,None),
          recursive:bool=False,
          as_comments:bool=False,
          no_run:bool=False,
          scriptname:str=DEFAULT_SCRIPT):
+
+    if folder is None: 
+        folder = Path.cwd()
 
     in_suffix,out_suffix = select_suffix(*suffix)
 

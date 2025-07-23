@@ -50,27 +50,12 @@ if DEFAULTS['plot.property'].getboolean('default_interactive'):
     parser.add_argument('--static',
                         dest='is_interactive',
                         action='store_false', default=True,
-                        help="""Write to a file instead of showing the figure
-                        in a new window""")
+                        help="Write to a file instead of showing the figure in a new window")
 else:
     parser.add_argument('--interactive',
                         dest='is_interactive',
                         action='store_true',default=False,
-                        help="""Instead of writing to a file open a window showing 
-                        the figure""")
-if DEFAULTS['plot.property'].getboolean('default_browser'):
-    parser.add_argument('--no-browser',
-                        dest='in_browser',
-                        action='store_false',default=True,
-                        help="""if --interactive is enabled, it disables 
-                        displaing the image in the browser and it will 
-                        be displayed in a window instead.""")
-else:
-    parser.add_argument('--browser',
-                        dest='in_browser',
-                        action='store_true',default=False,
-                        help="""Only if --interactive is enabled, it will display
-                        the image in the browser. To exit remember to Ctrl+C""")
+                        help="Instead of writing to a file open a window showing the figure")
 
 def main(
         ifile:str|Path,
@@ -78,8 +63,7 @@ def main(
         width:float=WIDTH,
         height:float=HEIGHT,
         dpi:float=DPI,
-        is_interactive:bool=False,
-        in_browser:bool=False,
+        is_interactive:bool=False
         ):
     
     # We want to delay any errors of optional libraries to the 
@@ -90,15 +74,11 @@ def main(
     if Path(outfile).suffix == '.svg':
         matplotlib.rcParams['svg.fonttype'] = 'none'
 
-    if is_interactive and in_browser: 
-        matplotlib.use('WebAgg')
-    elif is_interactive: 
-        msg = """We have observed that while the figure generated 
-              when writing to a file maintains all desired proportions
-              when showing it interactively (not in the browser) 
-              fontsizes and relative positions are not respected.
-              """.split('\n')
-        msg = ' '.join([l.strip() for l in msg])
+    if is_interactive: 
+        msg = ("We have observed that while the figure generated "
+              "when writing to a file maintains all desired proportions "
+              "when showing it interactively "
+              "fontsizes and relative positions are not respected.")
         warnings.warn(msg)
     
     with GaussianOutFile(ifile) as GOF:

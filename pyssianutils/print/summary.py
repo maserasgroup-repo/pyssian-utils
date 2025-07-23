@@ -41,7 +41,7 @@ def parse_gaussianfile(ifile:str|Path,
     
     ifile = Path(ifile)
 
-    U,Z,H,G = '', '', '', ''
+    E,Z,H,G = '', '', '', ''
 
     with GaussianOutFile(ifile,[1,120,502,508,716,804,913,9999]) as GOF:
             GOF.read()
@@ -49,14 +49,14 @@ def parse_gaussianfile(ifile:str|Path,
     if method is None:
         method = guess_method(GOF)
 
-    U = potential_energy(GOF,method)
+    E = potential_energy(GOF,method)
     
-    if U is None and not verbose: 
-        U = ''
+    if E is None and not verbose: 
+        E = ''
     elif verbose:
         raise RuntimeError(f'Potential Energy not found in file {ifile.name}')
     else: 
-        U = number_fmt.format(U)
+        E = number_fmt.format(E)
     
     try:
         Z,H,G = thermochemistry(GOF)
@@ -69,7 +69,7 @@ def parse_gaussianfile(ifile:str|Path,
     if G: G = number_fmt.format(G)
 
     if pattern is None: # If no pattern is provided assume no SP info should be provided
-        return U, Z, H, G, '', ''
+        return E, Z, H, G, '', ''
     
     # now try to guess a SP 
 
@@ -77,7 +77,7 @@ def parse_gaussianfile(ifile:str|Path,
     sp_candidate = ifile.with_stem(new_stem)
     
     if not sp_candidate.exists(): # if no file is found do not provide SP corrections
-        return U, Z, H, G, '', ''
+        return E, Z, H, G, '', ''
 
     with GaussianOutFile(sp_candidate,[1,120,502,508,716,804,913,9999]) as GOF_sp:
             GOF_sp.read()
@@ -93,51 +93,57 @@ def parse_gaussianfile(ifile:str|Path,
         U_sp = number_fmt.format(U_sp)
     
     try:
-        G_sp = float(U_sp) + (float(G) - float(U))
+        G_sp = float(U_sp) + (float(G) - float(E))
     except ValueError: 
         G_sp = ''
     else:
         G_sp = number_fmt.format(G_sp)
     
-    return U, Z, H, G, U_sp, G_sp
+    return E, Z, H, G, U_sp, G_sp
 
 # Parser and Main definition
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('files',help='Gaussian Output File(s)',nargs='+')
-parser.add_argument('-l','--listfile',help="""When enabled instead of
-                        considering the files provided as the gaussian output files
-                        considers the file provided as a list of gaussian output
-                        files""",action='store_true',dest='is_listfile')
-parser.add_argument('-o','--outfile',help="""File to write the Data. If it
-                        exists, the data will be appended. If none is provided 
-                        it will be printed to stdout""",default=None)
-parser.add_argument('--with-sp',help="""if enabled it will try to match the 
-                    pattern provided to compute the SP corrections from the files
-                    that match the pattern to provide the final energies""",
-                    dest='with_sp',default=False,action='store_true')
-parser.add_argument('--pattern',help="""pattern used when matching the SP files, 
-                    defaults to 'SP'""",
-                    default='SP')
-parser.add_argument('--method',help=""" When not provided it will 
-                        attempt (and may fail) to guess the method used 
-                        for the calculation to correctly read the potential
-                        energy. Otherwise it defaults to the Energy of the
-                        'SCF Done:' """, 
-                        choices=ALLOWEDMETHODS + ['default'],
-                        default='default',type=lambda x: x.lower())
-parser.add_argument('--method-sp',help=""" When not provided it will 
-                        attempt (and may fail) to guess the method used 
-                        for the SP calculation to correctly read the potential
-                        energy. Otherwise it defaults to the Energy of the
-                        'SCF Done:' """,
-                        choices=ALLOWEDMETHODS,dest='method_sp',
-                        default='default',type=lambda x: x.lower())
-parser.add_argument('--only-stem',help=""" only show the file stem 
-                        instead of the full path """,default=False,
-                        action='store_true',dest='only_stem')
-parser.add_argument('-v','--verbose',help="""if enabled it will raise an error
-                        anytime it is unable to find the thermochemistry of the 
-                        provided file""", default=False,action='store_true')
+parser.add_argument('-l','--listfile',
+                    action='store_true', dest='is_listfile',
+                    help="When enabled instead of considering the files "
+                    "provided as the gaussian output files considers the file "
+                    "provided as a list of gaussian output files")
+parser.add_argument('-o','--outfile',
+                    default=None,
+                    help="File to write the Data. If it exists, the data will "
+                    "be appended. If none is provided it will be printed to stdout")
+parser.add_argument('--with-sp',
+                    dest='with_sp',
+                    default=False, action='store_true',
+                    help="if enabled it will try to match the pattern provided "
+                    "to compute the SP corrections from the files that match "
+                    "the pattern to provide the final energies")
+parser.add_argument('--pattern',
+                    default='SP',
+                    help="pattern used when matching the SP files, defaults to 'SP'")
+parser.add_argument('--method',
+                    choices=ALLOWEDMETHODS + ['default'],
+                    default='default', type=lambda x: x.lower(),
+                    help="When not provided it will attempt (and may fail) to "
+                    "guess the method used for the calculation to correctly "
+                    "read the potential energy. Otherwise it defaults to the "
+                    "Energy of the 'SCF Done:' ")
+parser.add_argument('--method-sp',
+                    dest='method_sp',type=lambda x: x.lower(),
+                    choices=ALLOWEDMETHODS, default='default', 
+                    help="When not provided it will attempt (and may fail) to "
+                    "guess the method used for the SP calculation to correctly "
+                    "read the potential energy. Otherwise it defaults to the "
+                    "Energy of the 'SCF Done:' ", )
+parser.add_argument('--only-stem',
+                    dest='only_stem',
+                    default=False, action='store_true',
+                    help="only show the file stem instead of the full path ")
+parser.add_argument('-v','--verbose',
+                    default=False, action='store_true',
+                    help="if enabled it will raise an error anytime it is "
+                    "unable to find the thermochemistry of the provided file")
 
 def main(files:list[str],
          is_listfile:bool=False,
@@ -181,11 +187,11 @@ def main(files:list[str],
         line_fmt = spacer.join([name_format,]*2+[value_fmt,]*6)
         write_output(line_fmt.format(f'{{: ^{n}}}'.format('File'),
                                      f'{{: ^{n}}}'.format('File_SP'),
-                                     'U','Z','H','G','U(SP)','G(final)'))
+                                     'E','Z','H','G','E(SP)','G(final)'))
     else:
         line_fmt = spacer.join([name_format,]+[value_fmt,]*4)
         write_output(line_fmt.format(f'{{: ^{n}}}'.format('File'),
-                                     'U','Z','H','G'))
+                                     'E','Z','H','G'))
 
     # Actual parsing
     for ifile in files:
@@ -200,7 +206,7 @@ def main(files:list[str],
         if not with_sp:
             pattern = method_sp = None
 
-        U,Z,H,G,U_sp,G_sp = parse_gaussianfile(filepath,
+        E,Z,H,G,U_sp,G_sp = parse_gaussianfile(filepath,
                                                number_fmt,
                                                pattern,
                                                method,
@@ -212,7 +218,7 @@ def main(files:list[str],
         else:
             ifile_sp = ''
         
-        U,Z,H,G,U_sp,G_sp = map(value_fmt.format,[U,Z,H,G,U_sp,G_sp])
+        E,Z,H,G,U_sp,G_sp = map(value_fmt.format,[E,Z,H,G,U_sp,G_sp])
 
         name = ifile
         name_sp = ifile_sp
@@ -221,9 +227,9 @@ def main(files:list[str],
                 name = filepath.stem
                 name_sp = Path(ifile_sp).stem
 
-            write_output(line_fmt.format(name,name_sp,U,Z,H,G,U_sp,G_sp))
+            write_output(line_fmt.format(name,name_sp,E,Z,H,G,U_sp,G_sp))
         else:
             if only_stem: 
                 name = filepath.stem
             
-            write_output(line_fmt.format(name,U,Z,H,G))
+            write_output(line_fmt.format(name,E,Z,H,G))
