@@ -1,6 +1,8 @@
 import setuptools
+import re
 
-__version__ = '0.0.1'
+with open('pyssianutils/_version.py','r') as F: 
+    __version__ = re.findall(r'[0-9]*\.[0-9]*\.[0-9]',F.read())[0]
 
 with open("README.rst", "r") as fh:
     long_description = fh.read()
