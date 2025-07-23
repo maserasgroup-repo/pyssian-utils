@@ -1,6 +1,6 @@
 import os
 import subprocess
-import yaml 
+import configparser
 from pathlib import Path
 
 MAINBRANCH = 'master'
@@ -30,10 +30,10 @@ os.environ['pages_root'] = 'https://maserasgroup-repo.github.io/pyssian-utils'
 build_doc('latest', MAINBRANCH)
 move_dir(f'{BUILD_DIR}/html/', f'{PAGES_DIR}/')
 
-with open(f'{SPHINXSOURCE}/versions.yaml', 'r') as yaml_file:
-  docs = yaml.safe_load(yaml_file)
+versions = configparser.ConfigParser(allow_no_value=True)
+versions.read([f'{SPHINXSOURCE}/versions.ini'])
 
-for version, details in docs.items():
-    tag = details.get('tag', '')
+for version in versions.options('versions'):
+    tag = versions['versions'][version]
     build_doc(version, tag)
     move_dir(f'./{BUILD_DIR}/html/', f'../{PAGES_DIR}/{version}/')
