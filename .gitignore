@@ -10,3 +10,4 @@ _docs
 .pytest_cache
 dist/
 build/
+pages/

@@ -54,11 +54,35 @@ Prerequisites
 Installing pyssian-utils
 ------------------------
 
+Basic installation 
+
+.. code:: shell-session
+
+   $ python -m pip install pyssianutils
+
+Or to ensure that the dependencies for plotting are included:
+
+.. code:: shell-session
+
+   $ python -m pip install pyssianutils[plotting]
+
+Since pyssianutils>=1.0.0, to allow the user to customize pyssianutils to their 
+preferences we have added a prerequisite step between installation and using 
+pyssianutils. We need to initialize pyssianutils for the user: 
+
+.. code:: shell-session 
+
+   $ pyssianutils init
+
+
+Installation from source
+^^^^^^^^^^^^^^^^^^^^^^^^
+
 Get the source code either git or download and unpack it into "pyssian-utils"
 
 .. code:: shell-session
 
-   $ git clone https://github.com/maserasgroup-repo/pyssian-utils.git pyssian-utils
+   $ git clone https://github.com/maserasgroup-repo/pyssian-utils.git pyssian-utils/
 
 Now proceed to install it 
 
@@ -72,34 +96,12 @@ Or to ensure that the dependencies required for plotting are included
 
    $ python -m pip install ./pyssian-utils[plotting]
 
-Since pyssianutils>=1.0.0, to allow the user to customize pyssianutils to their 
-preferences we have added a prerequisite step between installation and using 
-pyssianutils. We need to initialize pyssianutils for the user: 
-
-.. code:: shell-session
-
-   $ pyssianutils init
-
-Future installation (Soon to be available)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Basic installation 
-
-.. code:: shell-session
-
-   $ python -m pip install pyssianutils
-
-Or to ensure that the dependencies for plotting are included:
-
-.. code:: shell-session
-
-   $ python -m pip install pyssianutils[plotting]
-
 Finally we ensure that pyssianutils is initialized: 
 
-.. code:: shell-session 
+.. code:: shell-session
 
    $ pyssianutils init
+
 
 Uninstalling pyssianutils
 -------------------------
@@ -127,14 +129,6 @@ Developed with
 - Ubuntu 22.04 LTS
 
 .. developed-end
-
-Examples
-========
-
-.. examples-msg
-
-Please open the Examples.rst in github to visualize the basic usage examples
-or read the documentation.
 
 .. project-author-license
 
