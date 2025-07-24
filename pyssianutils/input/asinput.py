@@ -170,7 +170,7 @@ def prepare_suffix(suffix:str) -> str:
         suffix = f'.{suffix.strip()}'
 
     return suffix
-def prepare_tail(filepath:Path|None) -> str|None:
+def prepare_tail(filepath:Path|None) -> list[str]|None:
     if filepath is None: 
         return None
     
@@ -183,7 +183,7 @@ def prepare_tail(filepath:Path|None) -> str|None:
     while len(aux)>=1 and not aux[-1]:
         _ = aux.pop(-1)
     
-    return '\n'.join(aux)
+    return aux
 
 # Parser and Main Definition
 __doc__ = __doc__.format(in_suffix=GAUSSIAN_INPUT_SUFFIX)

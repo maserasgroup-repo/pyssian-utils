@@ -355,7 +355,7 @@ def potential_energies(GOF:GaussianOutFile,method:str='default',withscf:bool=Fal
                 if withscf:
                     scf_energies = list(map(float,SCFCYCLE_PATTERN.findall(l502.text)))
                     energies.extend(scf_energies)
-                    if scf_energies[-1] != l502.energy:
+                    if scf_energies and (scf_energies[-1] != l502.energy):
                         energies.append(l502.energy)
                 energies.append(l502.energy)
         else:
@@ -365,7 +365,7 @@ def potential_energies(GOF:GaussianOutFile,method:str='default',withscf:bool=Fal
                     energies.extend(scf_energies)
                     if l508.energy is not None: 
                         energies.append(l508.energy)
-                    elif scf_energies[-1] != l502.energy: 
+                    elif scf_energies and (scf_energies[-1] != l502.energy): 
                         energies.append(l502.energy)
                 else:
                     energy = l502.energy
