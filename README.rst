@@ -43,7 +43,7 @@ local machine.
 Prerequisites
 -------------
 
-- python >= 3.8 (Developed with python 3.12)
+- python >= 3.10 (Developed with python 3.12)
 - python library: setuptools
 - python library: pathlib
 - python library: numpy
