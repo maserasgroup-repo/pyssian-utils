@@ -385,10 +385,13 @@ class TemplateSlurm(TemplateText):
             all_kwargs.pop(k,None)
         all_kwargs['in_suffix'] = self.in_suffix
         all_kwargs['out_suffix'] = self.out_suffix
-        return cls(self._base_text,
-                   self.choices,
-                   self.defaults,
-                   **all_kwargs)
+        new_item = cls(self._base_text,
+                       self.choices,
+                       self.defaults,
+                       **all_kwargs)
+        if 'walltime' not in all_kwargs:
+            new_item._use_walltime_from_queue = self._use_walltime_from_queue
+        return new_item
 
     @classmethod
     def from_file(cls,

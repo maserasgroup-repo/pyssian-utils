@@ -185,7 +185,10 @@ def main(files:list[str|Path],
         print(ifile)
         infilepath = Path(ifile)
         stem = infilepath.stem
-        ofile = outdir/f'{stem}_{marker}{suffix}'
+        if marker:
+            ofile = outdir/f'{stem}_{marker}{suffix}'
+        else:
+            ofile = outdir/f'{stem}{suffix}'
         geom,charge,spin = extract_geom_spin_and_charge(infilepath,
                                                         charge=charge,
                                                         spin=spin,
