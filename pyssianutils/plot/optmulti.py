@@ -67,8 +67,10 @@ def parse_gaussian_data(ifile):
 
     for links in zip(*items):
         
-        l502 = links[0]
-        l103 = links[-1]
+        if has_508: 
+            l502,l508,l103 = links
+        else:
+            l502,l103 = links
         
         try:
             force,rmsforce,displacement,rmsdisplacement = l103.convergence
@@ -77,8 +79,8 @@ def parse_gaussian_data(ifile):
             _error_count += 1
             if _error_count >= 3: 
                 raise ValueError
-        energy = l502.energy
 
+        energy = l502.energy
         if has_508: 
             l508 = links[1]
             if l508.energy is not None: 
@@ -270,7 +272,7 @@ def main(
     #    fig.update_layout(showlegend=True)
 
     if in_browser: 
-        fig.show()
+        fig.show(renderer='browser')
     else:
         with open(outfile,'w') as F: 
             F.write(to_html(fig))

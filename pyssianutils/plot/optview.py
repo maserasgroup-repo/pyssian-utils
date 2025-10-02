@@ -93,6 +93,8 @@ def main(
         links_508 = GOF[0].get_links(508)
         links_103 = GOF[0].get_links(103)
 
+    has_508 = len(links_508) > 0
+
     energies = []
     forces = []
     rmsforces = []
@@ -102,8 +104,26 @@ def main(
     thresholds = None
     ylabels = None
 
-    for l502,l508,l103 in zip(links_502,links_508,links_103[1:]): 
-        force,rmsforce,displacement,rmsdisplacement = l103.convergence
+    if has_508:
+        items = (links_502,links_508,links_103[1:])
+    else:
+        items = (links_502,links_103[1:])
+
+    for links in zip(*items):
+        
+        if has_508: 
+            l502,l508,l103 = links
+        else:
+            l502,l103 = links
+        
+        try:
+            force,rmsforce,displacement,rmsdisplacement = l103.convergence
+        except ValueError:
+            force,rmsforce,displacement,rmsdisplacement = np.nan,np.nan,np.nan,np.nan
+            _error_count += 1
+            if _error_count >= 3: 
+                raise ValueError
+        
         energy = l502.energy
         if l508.energy is not None: 
             energy = l508.energy
@@ -169,10 +189,14 @@ def main(
     color_A = DEFAULTS['plot.optview.gridA']['color']
     threshold_color_A = DEFAULTS['plot.optview.gridA']['threshold_color']
     size_A = DEFAULTS['plot.optview.gridA'].getfloat('scattersize')
-    xlims = min(x), max(x)
+    try:
+        xlims = min(x), max(x)
+    except ValueError: 
+        xlims = None
     yvals = [forces,rmsforces,displacements,rmsdisplacements]
     for ax,t,yl,y in zip(A_axes,thresholds,ylabels,yvals):
-        ax.hlines([t,],xlims[0],xlims[1],color=threshold_color_A)
+        if xlims is not None: 
+            ax.hlines([t,],xlims[0],xlims[1],color=threshold_color_A)
         ax.set_ylabel(yl)
         ax.set_xlabel('iteration')
         ax.plot(x,y,color=color_A)
