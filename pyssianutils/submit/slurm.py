@@ -220,6 +220,7 @@ class TemplateSlurm(TemplateText):
                 continue
             elif attr == 'walltime':
                 self.walltime = value
+                continue
             
             if attr == 'partition':
                 self.partition = self.choices['partition'][value]
