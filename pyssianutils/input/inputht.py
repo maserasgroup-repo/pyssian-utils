@@ -194,7 +194,7 @@ def main(files:list[str|Path],
                                                         spin=spin,
                                                         step=step)
         with open(ofile,'w') as F:
-            txt = template.format(title=f'{stem}_{marker}',
+            txt = template.format(title=ofile.stem,
                                   charge=charge,
                                   spin=spin,
                                   coords=str(geom))
