@@ -213,9 +213,13 @@ class TemplateSlurm(TemplateText):
             
             value = kwargs.get(attr,item)
 
-            if attr == 'walltime': 
-                self.walltime = value
+            if attr == 'walltime' and value is item:
+                # If using the default do not use the property setter
+                self._walltime = value
+                self._use_walltime_from_queue = True
                 continue
+            elif attr == 'walltime':
+                self.walltime = value
             
             if attr == 'partition':
                 self.partition = self.choices['partition'][value]
